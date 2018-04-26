@@ -124,6 +124,7 @@ SEXP onGetInputDataFromFiles(SEXP inputOptions) {
 	SET_SLOT(SW_DataList, install("years"), onGet_SW_MDL());
 	SET_SLOT(SW_DataList, install("weather"), onGet_SW_WTH());
 	SET_SLOT(SW_DataList, install("cloud"), onGet_SW_SKY());
+	SET_SLOT(SW_DataList, install("cloud_daily"), onGet_SW_SKY_daily());
 	SET_SLOT(SW_DataList, install("weatherHistory"), onGet_WTH_DATA());
 	if (LOGICAL(GET_SLOT(GET_SLOT(SW_DataList, install("weather")), install("use_Markov")))[0]) {
 		SET_SLOT(SW_DataList, install("markov"), onGet_MKV());

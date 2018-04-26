@@ -34,7 +34,7 @@
 #' @param vegtype The name or index of the vegetation type.
 #'
 #' @seealso \code{\linkS4class{swFiles}} \code{\linkS4class{swYears}}
-#' \code{\linkS4class{swWeather}} \code{\linkS4class{swCloud}}
+#' \code{\linkS4class{swWeather}} \code{\linkS4class{swCloud}} \code{\linkS4class{swCloud_daily}}
 #' \code{\linkS4class{swMarkov}} \code{\linkS4class{swProd}}
 #' \code{\linkS4class{swSite}} \code{\linkS4class{swSoils}}
 #' \code{\linkS4class{swEstab}} \code{\linkS4class{swOUT}}
@@ -48,7 +48,7 @@
 #' @name swInputData-class
 #' @export
 setClass("swInputData", slots = c(files = "swFiles", years = "swYears",
-  weather = "swWeather", cloud = "swCloud", weatherHistory = "list", markov = "swMarkov",
+  weather = "swWeather", cloud = "swCloud", cloud_daily = "swCloud_daily", weatherHistory = "list", markov = "swMarkov",
   prod = "swProd", site = "swSite", soils = "swSoils", estab = "swEstab",
   carbon = "swCarbon", output = "swOUT", swc = "swSWC", log = "swLog"))
 
@@ -310,6 +310,18 @@ setReplaceMethod("set_swCloud", signature = "swInputData", function(object, valu
   object
 })
 
+# Methods for slot 'cloud_daily'
+#' @rdname swInputData-class
+#' @export
+setMethod("get_swCloud_daily", "swInputData", function(object) object@cloud_daily)
+
+#' @rdname swInputData-class
+#' @export
+setReplaceMethod("set_swCloud_daily", signature = "swInputData", function(object, value) {
+  set_swCloud(object@cloud_daily) <- value
+  object
+})
+
 
 # Methods for slot 'weather'
 #' @rdname swInputData-class
@@ -443,6 +455,20 @@ setReplaceMethod("swCloud_Transmissivity", signature = "swInputData", function(o
 #' @export
 setReplaceMethod("swCloud_SnowDensity", signature = "swInputData", function(object, value) {
   swCloud_SnowDensity(object@cloud) <- value
+  object
+})
+
+# Methods for slot 'cloud_daily'
+#' @rdname swInputData-class
+#' @export
+setMethod("get_swCloud_daily", "swInputData", function(object) object@cloud_daily)
+#' @rdname swInputData-class
+#' @export
+setMethod("swCloud_daily_Humidity", "swInputData", function(object) swCloud_daily_Humidity(object@cloud_daily))
+#' @rdname swInputData-class
+#' @export
+setReplaceMethod("swCloud_daily_Humidity", signature = "swInputData", function(object, value) {
+  swCloud_daily_Humidity(object@cloud_daily) <- value
   object
 })
 

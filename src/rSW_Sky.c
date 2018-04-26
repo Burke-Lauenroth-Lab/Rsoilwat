@@ -53,7 +53,7 @@ static char *MyFileName;
 
 SEXP onGet_SW_SKY() {
 	int i;
-
+	printf("get sky\n");
 	SW_SKY *v = &SW_Sky;
 	SEXP swCloud,SW_SKY;
 	SEXP Cloud;
@@ -93,12 +93,55 @@ SEXP onGet_SW_SKY() {
 	return SW_SKY;
 }
 
+SEXP onGet_SW_SKY_daily() {
+  int i;
+	printf("get sky DAILY @@@@@@@@@@@@@@@\n");
+  SW_SKY *v = &SW_Sky;
+  SEXP swCloud_daily, SW_SKY_daily;
+  SEXP Cloud_daily;
+  SEXP Cloud_daily_names, Cloud_daily_names_x, Cloud_daily_names_y;
+  char *x_names_daily[] = {"HumidityPCT"};
+  RealD *p_Cloud_daily;
+
+  //
+  PROTECT(swCloud_daily = MAKE_CLASS("swCloud_daily"));
+  PROTECT(SW_SKY_daily = NEW_OBJECT(swCloud_daily));
+  PROTECT(Cloud_daily = allocMatrix(REALSXP, 1, 366));
+  p_Cloud_daily = REAL(Cloud_daily);
+  for (i = 0; i < 366; i++) { //i=columns
+    p_Cloud_daily[0 + 1 * i] = v->r_humidity[5]; // change 5 to i when possible
+  }
+
+  PROTECT(Cloud_daily_names = allocVector(VECSXP, 2));
+  PROTECT(Cloud_daily_names_x = allocVector(STRSXP, 1));
+  for (i = 0; i < 1; i++) {
+    SET_STRING_ELT(Cloud_daily_names_x, i, mkChar(x_names_daily[i]));
+  }
+  PROTECT(Cloud_daily_names_y = allocVector(STRSXP, 366));
+  char i_string[8];
+  for (i = 0; i < 366; i++) {
+    sprintf(i_string, "%d", i);
+    SET_STRING_ELT(Cloud_daily_names_y, i, mkChar(i_string));
+  }
+  SET_VECTOR_ELT(Cloud_daily_names, 0, Cloud_daily_names_x);
+  SET_VECTOR_ELT(Cloud_daily_names, 1, Cloud_daily_names_y);
+  setAttrib(Cloud_daily, R_DimNamesSymbol, Cloud_daily_names);
+
+  SET_SLOT(SW_SKY_daily,install("Cloud_daily"),Cloud_daily);
+  //
+
+  UNPROTECT(6);
+  return SW_SKY_daily;
+}
+
 void onSet_SW_SKY(SEXP sxp_SW_SKY) {
 	int i;
 	SW_SKY *v = &SW_Sky;
 	RealD *p_Cloud;
+	RealD *p_Cloud_daily;
 	PROTECT(sxp_SW_SKY);
 	p_Cloud = REAL(GET_SLOT(sxp_SW_SKY,install("Cloud")));
+	p_Cloud_daily = REAL(GET_SLOT(sxp_SW_SKY,install("Cloud_daily")));
 
 	MyFileName = SW_F_name(eSky);
 
@@ -108,6 +151,9 @@ void onSet_SW_SKY(SEXP sxp_SW_SKY) {
 		v->r_humidity[i] = p_Cloud[2 + 5 * i];
 		v->transmission[i] = p_Cloud[3 + 5 * i];
 		v->snow_density[i] = p_Cloud[4 + 5 * i];
+	}
+	for (i = 0; i < 366; i++) { //i=columns
+	  v->r_humidity[i] = p_Cloud_daily[0 + 1 * i];
 	}
 	UNPROTECT(1);
 }

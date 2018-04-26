@@ -434,6 +434,15 @@ setGeneric("swCloud_Transmissivity", function(object) standardGeneric("swCloud_T
 #' @seealso \code{\linkS4class{swCloud}} and \code{\linkS4class{swInputData}}
 setGeneric("swCloud_SnowDensity", function(object) standardGeneric("swCloud_SnowDensity"))
 
+#' get_swCloud_daily
+#' @param object An object of class \code{\linkS4class{swCloud_daily}} or \code{\linkS4class{swInputData}}.
+#' @seealso \code{\linkS4class{swCloud_daily}} and \code{\linkS4class{swInputData}}
+setGeneric("get_swCloud_daily", function(object) standardGeneric("get_swCloud_daily"))
+#' swCloud_Humidity
+#' @param object An object of class \code{\linkS4class{swCloud_daily}} or \code{\linkS4class{swInputData}}.
+#' @seealso \code{\linkS4class{swCloud_daily}} and \code{\linkS4class{swInputData}}
+setGeneric("swCloud_daily_Humidity", function(object) standardGeneric("swCloud_daily_Humidity"))
+
 #' set_swCloud
 #' Need to define and export this generic method -- otherwise, \code{\link{set_swCloud<-}} doesn't work.
 #' @export
@@ -468,6 +477,21 @@ setGeneric("swCloud_Transmissivity<-", function(object, value) standardGeneric("
 #' @param value A value to assign to a specific slot of the \code{object}.
 #' @seealso \code{\linkS4class{swCloud}} and \code{\linkS4class{swInputData}}
 setGeneric("swCloud_SnowDensity<-", function(object, value) standardGeneric("swCloud_SnowDensity<-"))
+
+#' set_swCloud
+#' Need to define and export this generic method -- otherwise, \code{\link{set_swCloud_daily<-}} doesn't work.
+#' @export
+setGeneric("set_swCloud_daily", function(object, value) standardGeneric("set_swCloud_daily"))
+#' set_swCloud_daily<-
+#' @param object An object of class \code{\linkS4class{swCloud_daily}} or \code{\linkS4class{swInputData}}.
+#' @param value A value to assign to a specific slot of the \code{object}.
+#' @seealso \code{\linkS4class{swCloud_daily}} and \code{\linkS4class{swInputData}}
+setGeneric("set_swCloud_daily<-", function(object, value) standardGeneric("set_swCloud_daily<-"))
+#' swCloud_Humidity<-
+#' @param object An object of class \code{\linkS4class{swCloud_daily}} or \code{\linkS4class{swInputData}}.
+#' @param value A value to assign to a specific slot of the \code{object}.
+#' @seealso \code{\linkS4class{swCloud_daily}} and \code{\linkS4class{swInputData}}
+setGeneric("swCloud_daily_Humidity<-", function(object, value) standardGeneric("swCloud_daily_Humidity<-"))
 ########################
 
 ########PROD############

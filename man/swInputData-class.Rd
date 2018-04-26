@@ -54,6 +54,8 @@
 \alias{swYears_isNorth<-,swInputData-method}
 \alias{get_swCloud,swInputData-method}
 \alias{set_swCloud<-,swInputData-method}
+\alias{get_swCloud_daily,swInputData-method}
+\alias{set_swCloud_daily<-,swInputData-method}
 \alias{get_swWeather,swInputData-method}
 \alias{swWeather_DaysRunningAverage,swInputData-method}
 \alias{swWeather_FirstYearHistorical,swInputData-method}
@@ -82,6 +84,9 @@
 \alias{swCloud_Humidity<-,swInputData-method}
 \alias{swCloud_Transmissivity<-,swInputData-method}
 \alias{swCloud_SnowDensity<-,swInputData-method}
+\alias{get_swCloud_daily,swInputData-method}
+\alias{swCloud_daily_Humidity,swInputData-method}
+\alias{swCloud_daily_Humidity<-,swInputData-method}
 \alias{get_Markov,swInputData-method}
 \alias{swMarkov_Prob,swInputData-method}
 \alias{swMarkov_Conv,swInputData-method}
@@ -299,6 +304,10 @@
 
 \S4method{set_swCloud}{swInputData}(object) <- value
 
+\S4method{get_swCloud_daily}{swInputData}(object)
+
+\S4method{set_swCloud_daily}{swInputData}(object) <- value
+
 \S4method{get_swWeather}{swInputData}(object)
 
 \S4method{swWeather_DaysRunningAverage}{swInputData}(object)
@@ -354,6 +363,12 @@
 \S4method{swCloud_Transmissivity}{swInputData}(object) <- value
 
 \S4method{swCloud_SnowDensity}{swInputData}(object) <- value
+
+\S4method{get_swCloud_daily}{swInputData}(object)
+
+\S4method{swCloud_daily_Humidity}{swInputData}(object)
+
+\S4method{swCloud_daily_Humidity}{swInputData}(object) <- value
 
 \S4method{get_Markov}{swInputData}(object)
 
@@ -607,7 +622,7 @@ x <- new("swInputData")
 }
 \seealso{
 \code{\linkS4class{swFiles}} \code{\linkS4class{swYears}}
-\code{\linkS4class{swWeather}} \code{\linkS4class{swCloud}}
+\code{\linkS4class{swWeather}} \code{\linkS4class{swCloud}} \code{\linkS4class{swCloud_daily}}
 \code{\linkS4class{swMarkov}} \code{\linkS4class{swProd}}
 \code{\linkS4class{swSite}} \code{\linkS4class{swSoils}}
 \code{\linkS4class{swEstab}} \code{\linkS4class{swOUT}}
