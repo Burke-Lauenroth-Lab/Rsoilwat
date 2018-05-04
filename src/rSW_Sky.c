@@ -53,7 +53,6 @@ static char *MyFileName;
 
 SEXP onGet_SW_SKY() {
 	int i;
-	printf("get sky\n");
 	SW_SKY *v = &SW_Sky;
 	SEXP swCloud,SW_SKY;
 	SEXP Cloud;
@@ -93,9 +92,9 @@ SEXP onGet_SW_SKY() {
 	return SW_SKY;
 }
 
+// function for creating the daily S4 class for daily values
 SEXP onGet_SW_SKY_daily() {
   int i;
-	printf("get sky DAILY @@@@@@@@@@@@@@@\n");
   SW_SKY *v = &SW_Sky;
   SEXP swCloud_daily, SW_SKY_daily;
   SEXP Cloud_daily;
@@ -103,18 +102,17 @@ SEXP onGet_SW_SKY_daily() {
   char *x_names_daily[] = {"HumidityPCT"};
   RealD *p_Cloud_daily;
 
-  //
   PROTECT(swCloud_daily = MAKE_CLASS("swCloud_daily"));
   PROTECT(SW_SKY_daily = NEW_OBJECT(swCloud_daily));
   PROTECT(Cloud_daily = allocMatrix(REALSXP, 1, 366));
   p_Cloud_daily = REAL(Cloud_daily);
   for (i = 0; i < 366; i++) { //i=columns
-    p_Cloud_daily[0 + 1 * i] = v->r_humidity[5]; // change 5 to i when possible
+    p_Cloud_daily[0 + 1 * i] = v->r_humidity[5]; // change 5 to i when possible. Just using 5 as hard coded value so dont get error for incorrect index
   }
 
   PROTECT(Cloud_daily_names = allocVector(VECSXP, 2));
   PROTECT(Cloud_daily_names_x = allocVector(STRSXP, 1));
-  for (i = 0; i < 1; i++) {
+  for (i = 0; i < 1; i++) { // for setting "column" name. increment when adding windspeed and solar radiation
     SET_STRING_ELT(Cloud_daily_names_x, i, mkChar(x_names_daily[i]));
   }
   PROTECT(Cloud_daily_names_y = allocVector(STRSXP, 366));
@@ -128,7 +126,6 @@ SEXP onGet_SW_SKY_daily() {
   setAttrib(Cloud_daily, R_DimNamesSymbol, Cloud_daily_names);
 
   SET_SLOT(SW_SKY_daily,install("Cloud_daily"),Cloud_daily);
-  //
 
   UNPROTECT(6);
   return SW_SKY_daily;
@@ -153,7 +150,7 @@ void onSet_SW_SKY(SEXP sxp_SW_SKY) {
 		v->snow_density[i] = p_Cloud[4 + 5 * i];
 	}
 	for (i = 0; i < 366; i++) { //i=columns
-	  v->r_humidity[i] = p_Cloud_daily[0 + 1 * i];
+	  v->r_humidity[i] = p_Cloud_daily[0 + 1 * i]; // going through for daily values
 	}
 	UNPROTECT(1);
 }
