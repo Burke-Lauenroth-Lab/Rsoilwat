@@ -1,6 +1,6 @@
 ###############################################################################
 #rSOILWAT2
-#    Copyright (C) {2009-2018}  {Ryan Murphy, Daniel Schlaepfer, 
+#    Copyright (C) {2009-2018}  {Ryan Murphy, Daniel Schlaepfer,
 #    William Lauenroth, John Bradford}
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -120,7 +120,7 @@ dbW_addWeatherData_old <- function(Site_id=NULL, lat=NULL, long=NULL, weatherFol
 		weatherData <- list()
 		for(j in 1:length(weath)) {
 			year <- as.numeric(sub(pattern="weath.",replacement="",weath[j]))
-			temp <-read.csv(file.path(weatherFolderPath,weath[j]),header=FALSE,skip=2,sep="\t")
+			temp <- utils::read.csv(file.path(weatherFolderPath,weath[j]),header=FALSE,skip=2,sep="\t")
 			weatherData[[j]] <- swReadLines(new("swWeatherData",year),file.path(weatherFolderPath,weath[j]))
 		}
 		StartYear <- years[1]
@@ -145,7 +145,7 @@ dbW_blob_to_weatherData_old <- function(StartYear, EndYear, data_blob, type = "g
 	weatherData <- list()
 	for (i in seq_along(years)) {
 		zz <- textConnection(data[i])
-		ydata <- read.table(zz, header = FALSE, sep = ",", stringsAsFactors = FALSE)
+		ydata <- utils::read.table(zz, header = FALSE, sep = ",", stringsAsFactors = FALSE)
 		close(zz)
 		ydata <- as.matrix(cbind(seq_len(nrow(ydata)), ydata))
 		colnames(ydata) <- c("DOY", "Tmax_C", "Tmin_C", "PPT_cm")
@@ -164,7 +164,7 @@ dbW_weatherData_to_blob_old <- function(weatherData, type = "gzip") {
 	for(i in seq_along(weatherData)) {
 		rm(dataString)
 		zz <- textConnection("dataString", "w")
-		write.table(x = weatherData[[i]]@data[, -1], file = zz, col.names = FALSE, sep = "," , row.names = FALSE)
+		utils::write.table(x = weatherData[[i]]@data[, -1], file = zz, col.names = FALSE, sep = "," , row.names = FALSE)
 		close(zz)
 		string[i] <- paste(dataString, collapse = "\n")
 	}

@@ -109,11 +109,12 @@ setMethod("initialize", signature = "swCloud", function(.Object, ...) {
   dots <- list(...)
   dns <- names(dots)
 
-  # We don't set values for slot `Cloud` (except SnowDensity) if not
-  # passed via ...; this is to prevent simulation runs with accidentally
+  # We don't set values for slot `Cloud` (except SnowDensity and RainEvents)
+  # if not passed via ...; this is to prevent simulation runs with accidentally
   # incorrect values
   if (!("Cloud" %in% dns)) {
-    def@Cloud[-4, ] <- NA_real_
+    ids <- 4:5
+    def@Cloud[- ids, ] <- NA_real_
   } else {
     # Guarantee dimnames
     dimnames(dots[["Cloud"]]) <- dimnames(def@Cloud)

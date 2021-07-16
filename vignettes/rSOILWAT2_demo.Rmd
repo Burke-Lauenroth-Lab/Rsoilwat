@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output:
   bookdown::pdf_document2:
     toc: true
-    toc_depth: 2
+    toc_depth: 3
 #  rmarkdown::html_vignette:
 #    toc: true
 #    toc_depth: 3
@@ -17,8 +17,10 @@ output:
 #    smart: false
 vignette: >
   %\VignetteIndexEntry{rSOILWAT2_demo}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options:
+  chunk_output_type: console
 ---
 \pagebreak
 
@@ -28,29 +30,28 @@ vignette: >
 ## Install a sufficiently recent rSOILWAT2 package version:
 ```{r, install, results = "hide"}
   v <- try(utils::packageVersion("rSOILWAT2"), silent = TRUE)
-  if (inherits(v, "try-error") || v < "3.1.4") {
+  if (inherits(v, "try-error") || v < "4.0.3") {
     message(
       "There is no or an outdated rSOILWAT2 version present. ",
       "Please update to a more recent version and build vignettes: see",
       "https://github.com/DrylandEcology/rSOILWAT2#installation"
     )
   }
-
-  stopifnot(require("rSOILWAT2", quietly = TRUE))
 ```
 
 
 ## How to find help and documentation
 ```{r, help, results = "hide"}
-  # Package documention
+  # Package documentation
   help(package = "rSOILWAT2")
 
   # Documentation of a specific function, e.g.,
-  ?sw_exec
+  ?rSOILWAT2::sw_exec
 
-  # Code of a specifici function, e.g.,
-  sw_exec
+  # View code of a specific function, e.g.,
+  rSOILWAT2::sw_exec
 ```
+
 
 ## Quick R re-cap: how to subset data.frames, matrices, and lists
 ```{r, subset, results = "hide"}
@@ -93,12 +94,14 @@ vignette: >
 
 
 
-# Run example rSOILWAT2 simulation
+
+# Example rSOILWAT2 simulation
 ```{r, simulate0}
   # Load data for an example site: see ?sw_exampleData
   sw_in0 <- rSOILWAT2::sw_exampleData
+
   # Run SOILWAT2 for the example site
-  sw_out0 <- sw_exec(inputData = sw_in0)
+  sw_out0 <- rSOILWAT2::sw_exec(inputData = sw_in0)
 ```
 
 ```{r, exploreS4}
@@ -106,15 +109,22 @@ vignette: >
   slotNames(sw_out0)
 ```
 
+## Calculate climate conditions from daily weather
+```{r, calc_clim}
+  clim0 <- rSOILWAT2::calc_SiteClimate(
+    weatherList = rSOILWAT2::get_WeatherHistory(sw_in0),
+    do_C4vars = TRUE
+  )
+```
 
-Task: Create daily/monthly/yearly plots of soil moisture, transpiration,
-      evaporation, etc.
+### Task: Create daily/monthly/yearly plots
 ```{r, plot1}
   x <- slot(slot(sw_out0, "VWCBULK"), "Day")
 
   ids <- grep("Lyr", colnames(x))
   vwc <- x[, ids]
-  matplot(vwc,
+  matplot(
+    vwc,
     ylim = c(0, max(vwc)),
     xlab = "Time",
     ylab = "Volumetric water content (bulk; m3 / m3)",
@@ -130,13 +140,19 @@ Task: Create daily/monthly/yearly plots of soil moisture, transpiration,
 
   x <- slot(slot(sw_out0, "TRANSP"), "Month")
   ids <- grep("transp_total", colnames(x))
-  matplot(x[1:24, ids], type = "l")
+  matplot(
+    x[1:24, ids],
+    type = "l",
+    xlab = "Time (Months)",
+    ylab = "Transpiration (cm)"
+  )
 
 
   x <- slot(slot(sw_out0, "EVAPSOIL"), "Year")
   ids <- grep("Lyr", colnames(x))
   es <- apply(x[, ids], 1, sum)
-  plot(x = x[, "Year"], y = es,
+  plot(
+    x = x[, "Year"], y = es,
     ylim = c(0, max(es)),
     xlab = "Time",
     ylab = "Bare-soil evaporation (cm)",
@@ -146,96 +162,524 @@ Task: Create daily/monthly/yearly plots of soil moisture, transpiration,
 
 
 ## Read inputs from local files on disk (including daily weather forcing)
-Task: Use function `sw_inputDataFromFiles` to read inputs from location
-      `path_demo` (e.g., this could be inputs for your site)
-
 ```{r, path}
   path_demo <- system.file("extdata", "example1", package = "rSOILWAT2")
 ```
 
 ```{r, simulate1}
+  # Task: Use function `sw_inputDataFromFiles` to read inputs from location
+  # `path_demo` (e.g., this could be inputs for your site)
+
   # Read data from input files
-  sw_in1 <- sw_inputDataFromFiles(dir = path_demo)
+  sw_in1 <- rSOILWAT2::sw_inputDataFromFiles(dir = path_demo)
 
   # Then run simulation
-  sw_out <- sw_exec(inputData = sw_in1)
+  sw_out1 <- rSOILWAT2::sw_exec(inputData = sw_in1)
 ```
 
 
-## Read weather data separately from files on disk
-```{r, weather1}
-  wdata <- getWeatherData_folders(
+
+
+
+
+# Create rSOILWAT2 simulation run for a specific site
+
+## Create base rSOILWAT2 input object
+```{r, input_object}
+  # Preferred option:
+  # All relevant site-specific paramaters and variables are set to NA
+  sw_in <- new("swInputData")
+
+  # Quick option:
+  # This approach is discouraged because it is very easy to miss to
+  # set all relevant parameters and variables to site-specific values
+  if (FALSE) {
+    sw_in <- rSOILWAT2::sw_exampleData
+  }
+```
+
+## Simulation time and location
+```{r, site}
+  # Set simulation period, e.g., to 1980-2019
+  rSOILWAT2::swYears_StartYear(sw_in) <- 0
+  rSOILWAT2::swYears_EndYear(sw_in) <- 2019
+  rSOILWAT2::swYears_StartYear(sw_in) <- 1980
+
+  # Specify geographic location of site
+  rSOILWAT2::swSite_IntrinsicSiteParams(sw_in) <- c(
+    Longitude = -105.58,
+    Latitude = 39.59,
+    Altitude = 1000,
+    Slope = 0,
+    Aspect = NA
+  )
+```
+
+
+
+## Daily meteorological data (forcing the simulation)
+
+You may organize weather data in a variety of ways:
+- `rSOILWAT2` weather database (see vignette `rSOILWAT2_WeatherDatabase`)
+- text files as for `SOILWAT2`
+- directly access external online data sets
+
+
+### Read weather data from text files
+```{r, weather_files}
+  wdata <- rSOILWAT2::getWeatherData_folders(
     LookupWeatherFolder = file.path(path_demo, "Input"),
     weatherDirName = "data_weather"
   )
-
-  sw_out <- sw_exec(
-    inputData = sw_in1,
-    weatherList = wdata
-  )
 ```
 
 
-# Handling missing weather data
+### Access external data sets: for example, `DayMet`
+```{r, weather_daymetr, results = "hide", message = FALSE, warning = FALSE}
+  if (requireNamespace("daymetr") && curl::has_internet()) {
+    # Download from `DayMet`
+    dm_Laramie <- try(daymetr::download_daymet(
+      site = "testsite_name",
+      lat = 41.3167,
+      lon = -105.6833,
+      start = rSOILWAT2::swYears_StartYear(sw_in),
+      end = rSOILWAT2::swYears_EndYear(sw_in),
+      internal = TRUE,
+      simplify = FALSE
+    ))
 
-## Read weather data with missing values
-Task: use function `getWeatherData_folders` to read weather data with
-      missing values from folder `data_weather_missing`
+    if (!inherits(dm_Laramie, "try-error")) {
+      # Convert data to a `rSOILWAT2`-formatted weather object
+      vars <- c("year", "yday", "tmax..deg.c.", "tmin..deg.c.", "prcp..mm.day.")
+      xdf <- dm_Laramie[["data"]][, vars]
+      xdf[, "prcp..mm.day."] <- xdf[, "prcp..mm.day."] / 10 # convert mm -> cm
+      colnames(xdf) <- c("Year", "DOY", "Tmax_C", "Tmin_C", "PPT_cm")
+
+      wdata_dm <- rSOILWAT2::dbW_dataframe_to_weatherData(weatherDF = xdf)
+
+      # Convert `DayMet`'s `noleap` calendar to proleptic Gregorian calendar
+      xdf2 <- rSOILWAT2::dbW_convert_to_GregorianYears(weatherData = wdata_dm)
+
+      wdata <- rSOILWAT2::dbW_generateWeather(
+        weatherData = rSOILWAT2::dbW_dataframe_to_weatherData(weatherDF = xdf2),
+        seed = 123
+      )
+
+      # Check that weather data is well-formed
+      stopifnot(rSOILWAT2::dbW_check_weatherData(wdata))
+    }
+  }
+```
+
+
+### Specify first year of observed weather data
+```{r, wyr}
+  # `FirstYearHistorical` can be set to a negative value (the default),
+  # then the code will use the first simulation year.
+  # That is, the two lines below will produce identical simulations:
+  rSOILWAT2::swWeather_FirstYearHistorical(sw_in) <-
+    rSOILWAT2::swYears_StartYear(sw_in)
+  rSOILWAT2::swWeather_FirstYearHistorical(sw_in) <- -1
+```
+
+
+### Calculate site climate from daily values
+```{r, siteclim}
+  clim <- rSOILWAT2::calc_SiteClimate(weatherList = wdata, do_C4vars = TRUE)
+```
+
+
+## Atmospheric CO2 concentration
+```{r, co2a}
+  # Name of the CO2 concentration scenario
+  co2_nametag <- "RCP85"
+
+  # Obtain yearly values from look-up table
+  co2_data <- rSOILWAT2::lookup_annual_CO2a(
+    start = rSOILWAT2::swYears_StartYear(sw_in),
+    end = rSOILWAT2::swYears_EndYear(sw_in),
+    name_co2 = co2_nametag
+  )
+
+  # Assign CO2 values to rSOILWAT2 input object
+  rSOILWAT2::swCarbon_Scenario(sw_in) <- co2_nametag
+  rSOILWAT2::swCarbon_CO2ppm(sw_in) <- data.matrix(co2_data)
+```
+
+
+## Climate inputs for Penman's potential evapotranspiration
+```{r, petclim}
+  # Extract from external data set, or
+  # Use fixed values describing an experiment treatment (as here)
+  rH <- rep(50, 12) # relative humidity [%]
+  ws <- rep(2, 12) # wind speed [m/s]
+  sc <- rep(30, 12) # sky cover [%]
+
+  # Assign monthly climate normals to rSOILWAT2 input object
+  rSOILWAT2::swCloud_Humidity(sw_in) <- rH
+  rSOILWAT2::swCloud_WindSpeed(sw_in) <- ws
+  rSOILWAT2::swCloud_SkyCover(sw_in) <- sc
+```
+
+
+## Soil inputs
+
+### Soils data from experimental treatment: fixed soil texture
+```{r, soils_fixed}
+  soils_fixed <- data.frame(
+    depth = c(5, 10, 20, 50),
+    bulkd = 1.3,
+    gravel = 0.1,
+    evco = NA,
+    trco_grass = NA,
+    trco_shrub = NA,
+    trco_tree = NA,
+    trco_forb = NA,
+    sand = 0.65,
+    clay = 0.05,
+    impermeability = NA,
+    soil_temp = NA
+  )
+
+  soil_new <- data.frame(rSOILWAT2::swSoils_Layers(sw_in)[0, ])
+  soil_new[seq_len(nrow(soils_fixed)), ] <- soils_fixed
+```
+
+
+### Soils data from external datasets: e.g., `NRCS SSURGO/STATSGO via SDA`
+```{r, soils_sda, results = "hide", message = FALSE, warning = FALSE}
+  if (requireNamespace("rSW2exter") && curl::has_internet()) {
+    tmp <- rSOILWAT2::swSite_IntrinsicSiteParams(sw_in)
+
+    soils_sda <- rSW2exter::extract_soils_NRCS_SDA(
+      x = matrix(tmp[c("Longitude", "Latitude")], nrow = 1),
+      method = "SSURGO_then_STATSGO",
+      remove_organic_horizons = "at_surface",
+      replace_missing_fragvol_with_zero = "at_surface",
+      estimate_missing_bulkdensity = TRUE,
+      restrict_by_ec_or_ph = FALSE,
+      impute = TRUE,
+      progress_bar = FALSE,
+      verbose = FALSE
+    )
+
+
+    # Add homogenized soil layers
+    tmp <- grep("depth_L", colnames(soils_sda[["table_depths"]]))
+    soils_sda2 <- rSW2data::update_soil_profile(
+      soil_layers = soils_sda[["table_depths"]][1, tmp, drop = FALSE],
+      requested_soil_layers = c(
+        5,
+        seq(10, 100, by = 10),
+        seq(120, 200, by = 20)
+      ),
+      soil_data = soils_sda[["table_texture"]],
+      variables = c("dbovendry_L", "sandtotal_L", "claytotal_L", "fragvol_L"),
+      vars_exhaust = NULL,
+      keep_prev_soildepth = TRUE,
+      keep_prev_soillayers = FALSE
+    )
+
+    # Copy wide-data to rSOILWAT2-style soil data table
+    soil_new <- data.frame(rSOILWAT2::swSoils_Layers(sw_in)[0, ])
+    ids <- seq_len(ncol(soils_sda2[["soil_layers"]]))
+
+    # Soil layer depths
+    tmp <- grep("depth_L", colnames(soils_sda2[["soil_layers"]]))
+    soil_new[ids, "depth_cm"] <- soils_sda2[["soil_layers"]][1, tmp]
+
+    # Soil density, texture, and gravel
+    tmp <- grep("dbovendry_L", colnames(soils_sda2[["soil_data"]]))
+    soil_new[ids, "bulkDensity_g.cm.3"] <- soils_sda2[["soil_data"]][1, tmp]
+
+    tmp <- grep("sandtotal_L", colnames(soils_sda2[["soil_data"]]))
+    soil_new[ids, "sand_frac"] <- soils_sda2[["soil_data"]][1, tmp]
+    tmp <- grep("claytotal_L", colnames(soils_sda2[["soil_data"]]))
+    soil_new[ids, "clay_frac"] <- soils_sda2[["soil_data"]][1, tmp]
+
+    tmp <- grep("fragvol_L", colnames(soils_sda2[["soil_data"]]))
+    soil_new[ids, "gravel_content"] <- soils_sda2[["soil_data"]][1, tmp]
+  }
+```
+
+
+### Soil impermeability
+```{r, impermeability0, results = "hide"}
+  # Set impermeability to zero
+  soil_new[, "impermeability_frac"] <- 0
+```
+
+
+### Potential bare-soil evaporation rates
+```{r, evco, results = "hide"}
+  if (requireNamespace("rSW2data")) {
+    soil_new[, "EvapBareSoil_frac"] <- rSW2data::calc_BareSoilEvapCoefs(
+      layers_depth = soil_new[, "depth_cm"],
+      sand = soil_new[, "sand_frac"],
+      clay = soil_new[, "clay_frac"]
+    )[1, ]
+  }
+```
+
+
+### Soil temperature parameters and initial profile values
+```{r, Tsoil_init, results = "hide"}
+  soil_new[, "soilTemp_c"] <- rSW2data::init_soiltemperature(
+    layers_depth = soil_new[, "depth_cm"],
+    # Estimated soil surface temperature on Jan 1
+    # (potentially underneath snow pack)
+    Tsoil_upper = max(-1, mean(clim[["meanMonthlyTempC"]][c(1, 12)])),
+    # Constant soil temperature (Celsius) at the lower boundary (max depth)
+    # approximated by mean annual air temperature
+    Tsoil_const = mean(clim[["meanMonthlyTempC"]]),
+    depth_Tsoil_const = 990
+  )
+```
+
+## Assign new soil data to rSOILWAT2 input object
+```{r, soils_final1}
+  # This fails because rooting profile values are still missing
+  try(rSOILWAT2::swSoils_Layers(sw_in) <- data.matrix(soil_new))
+```
+
+
+
+## Vegetation inputs
+
+### Fractional land cover (vegetation composition)
+```{r, vegcomp}
+  # Note: `estimate_PotNatVeg_composition()` does not estimate fractional cover
+  # of trees, bare-ground, etc. and sets those to zero are any other user
+  # defined value
+  veg_cover <- rSOILWAT2::estimate_PotNatVeg_composition(
+    MAP_mm = 10 * clim[["MAP_cm"]],
+    MAT_C = clim[["MAT_C"]],
+    mean_monthly_ppt_mm = 10 * clim[["meanMonthlyPPTcm"]],
+    mean_monthly_Temp_C = clim[["meanMonthlyTempC"]],
+    dailyC4vars = clim[["dailyC4vars"]]
+  )
+
+  ids <- sapply(
+    X = names(rSOILWAT2::swProd_Composition(sw_in)),
+    FUN = function(x) {
+      grep(
+        pattern = substr(x, 1, 4),
+        x = names(veg_cover[["Rel_Abundance_L1"]]),
+        ignore.case = TRUE
+      )
+    }
+  )
+
+  # Assign fractional cover values to rSOILWAT2 input object
+  rSOILWAT2::swProd_Composition(sw_in) <- veg_cover[["Rel_Abundance_L1"]][ids]
+```
+
+
+### Biomass amount and phenology (for shrubs and grasses)
+```{r, veg}
+  # Reference biomass values from Bradford et al. 2014 are used
+  # Mean monthly reference temperature corresponding to default phenology values
+  # for the median across 898 big sagebrush sites are used
+  veg_biom <- rSOILWAT2::estimate_PotNatVeg_biomass(
+    target_temp = clim[["meanMonthlyTempC"]],
+    target_MAP_mm = 10 * clim[["MAP_cm"]],
+    do_adjust_phenology = TRUE,
+    do_adjust_biomass = TRUE,
+    fgrass_c3c4ann = veg_cover[["Grasses"]]
+  )
+
+  # Assign monthly biomass values to rSOILWAT2 input object
+  # Note: monthly biomass values of forbs, trees, etc. need to be estimated
+  v1 <- c("Litter", "Biomass", "Perc.Live")
+  v2 <- c("Litter", "Biomass", "Live_pct")
+  rSOILWAT2::swProd_MonProd_grass(sw_in)[, v2] <- veg_biom[["grass"]][, v1]
+  rSOILWAT2::swProd_MonProd_shrub(sw_in)[, v2] <- veg_biom[["shrub"]][, v1]
+```
+
+
+### Rooting profiles of vegetation types
+```{r, roots}
+  # Select rooting profile types
+  # Set those to "FILL" where cover == 0 (because of transpiration regions)
+  trco_type_by_veg <- list(
+    grass_C3 = if (veg_cover[["Rel_Abundance_L0"]][["Grasses_C3"]] > 0) {
+      "SchenkJackson2003_PCdry_grasses"
+    } else {
+      "FILL"
+    },
+    grass_C4 = if (veg_cover[["Rel_Abundance_L0"]][["Grasses_C4"]] > 0) {
+      "SchenkJackson2003_PCdry_grasses"
+    } else {
+      "FILL"
+    },
+    grass_annuals = if (
+      veg_cover[["Rel_Abundance_L0"]][["Grasses_Annuals"]] > 0
+    ) {
+      "Jacksonetal1996_crops"
+    } else {
+      "FILL"
+    },
+    shrub = if (veg_cover[["Rel_Abundance_L0"]][["Shrubs"]] > 0) {
+      "SchenkJackson2003_PCdry_shrubs"
+    } else {
+      "FILL"
+    },
+    forb = if (veg_cover[["Rel_Abundance_L0"]][["Forbs"]] > 0) {
+      "SchenkJackson2003_PCdry_forbs"
+    } else {
+      "FILL"
+    },
+    tree = if (veg_cover[["Rel_Abundance_L0"]][["Trees"]] > 0) {
+      "Bradfordetal2014_LodgepolePine"
+    } else {
+      "FILL"
+    }
+  )
+
+  veg_roots <- rSOILWAT2::estimate_PotNatVeg_roots(
+    layers_depth = soil_new[, "depth_cm"],
+    trco_type_by_veg = trco_type_by_veg,
+    fgrass_c3c4ann = veg_cover[["Grasses"]]
+  )
+
+  # Add rooting profile to soil
+  v1 <- c("Grass", "Shrub", "Tree", "Forb")
+  v2 <- paste0("transp", v1, "_frac")
+  soil_new[, v2] <- veg_roots[, v1]
+```
+
+
+## Assign new soil data to rSOILWAT2 input object
+```{r, soils_final2, results = "hide"}
+  rSOILWAT2::swSoils_Layers(sw_in) <- data.matrix(soil_new)
+```
+
+
+## Transpiration regions
+```{r, transp_regions}
+  # Prepare transpiration regions based on soil layers
+  # Adjust to your specific soil depths,
+  # e.g., if extracted from NRCS SDA without updating soil layers
+  tr_example <- c(1, 1, 2, 3, 3)
+
+  # Values corresponding to `CONUSSOIL_BSE_EVERY10cm` of "rSFSW2":
+  tr_lyrs_10cm <- c(1, 1, 1, 2, 2, 2, 2, 3, 3, 3)
+
+  tr <- rSOILWAT2::prepare_TranspirationRegions(tr_lyrs = tr_lyrs_10cm)
+  rSOILWAT2::swSite_TranspirationRegions(sw_in) <- data.matrix(tr)
+
+  # Make necessary adjustments based on soil depth and rooting profiles
+  rSOILWAT2::swSite_TranspirationRegions(sw_in) <-
+    rSOILWAT2::adjust_TranspirationRegions(sw_in)
+
+  # Check that all is fine
+  stopifnot(rSOILWAT2::check_TranspirationRegions(sw_in))
+```
+
+
+
+
+## Modifying climate conditions
+```{r, climmod}
+  sw_in2 <- sw_in
+
+  # Example: 50% reduction in June-Aug precipitation
+  rSOILWAT2::swWeather_MonScalingParams(sw_in2)[6:8, "PPT"] <- 0.5
+
+  # Example: 2 C warming
+  rSOILWAT2::swWeather_MonScalingParams(sw_in2)[, c("MaxT", "MinT")] <- 2
+```
+
+
+## Run SOILWAT2 for prepared site
+```{r, run_site}
+  sw_out <- rSOILWAT2::sw_exec(inputData = sw_in, weatherList = wdata)
+  sw_out2 <- rSOILWAT2::sw_exec(inputData = sw_in2, weatherList = wdata)
+```
+
+
+## Sneak-peak at output
+```{r, plot2}
+  res_transp <- rSOILWAT2::get_transpiration(sw_out, "Year")
+  res_transp2 <- rSOILWAT2::get_transpiration(sw_out2, "Year")
+
+  plot(
+    res_transp, res_transp2,
+    xlab = "Annual transpiration [mm]",
+    ylab = "Warm & summer-dry: annual transpiration [mm]",
+    xlim = c(0, 200),
+    ylim = c(0, 200)
+  )
+  abline(0, 1, col = "red")
+```
+
+
+# Weather generator
+
+### Read weather data with missing values
 ```{r, weather2}
-  wdata_gaps <- getWeatherData_folders(
+  # Task: use function `getWeatherData_folders` to read weather data with
+  # missing values from folder `data_weather_missing`
+  wdata_gaps <- rSOILWAT2::getWeatherData_folders(
     LookupWeatherFolder = file.path(path_demo, "Input"),
     weatherDirName = "data_weather_missing",
   )
 
   # This will fail: missing data
-  sw_out <- try(sw_exec(
-    inputData = sw_in1,
+  sw_out <- try(rSOILWAT2::sw_exec(
+    inputData = sw_in0,
     weatherList = wdata_gaps
   ))
 ```
 
 
-Option 1: estimate weather generator coefficients with
-          function `dbW_estimate_WGen_coefs`,
-          generate weather with function `dbW_generateWeather`,
-          and run SOILWAT2 with filled-in data
-```{r, weather3}
-  wgen_coeffs <- dbW_estimate_WGen_coefs(weatherData = wdata)
+### Option 1
+  (i) Estimate weather generator coefficients with
+      function `dbW_estimate_WGen_coefs()`,
+  (ii) generate weather with function `dbW_generateWeather()`, and
+  (iii) run SOILWAT2 with filled-in data
 
-  wdata_filled <- dbW_generateWeather(
+```{r, weather3}
+  wgen_coeffs <- rSOILWAT2::dbW_estimate_WGen_coefs(weatherData = wdata)
+
+  wdata_filled <- rSOILWAT2::dbW_generateWeather(
     weatherData = wdata_gaps,
-    years = swYears_StartYear(sw_in1):swYears_EndYear(sw_in1),
+    years = seq(
+      from = rSOILWAT2::swYears_StartYear(sw_in0),
+      to = rSOILWAT2::swYears_EndYear(sw_in0)
+    ),
     wgen_coeffs = wgen_coeffs,
     seed = 123
   )
 
-  sw_out <- sw_exec(
-    inputData = sw_in1,
+  sw_out <- rSOILWAT2::sw_exec(
+    inputData = sw_in0,
     weatherList = wdata_filled
   )
 ```
 
-Option 2: estimate weather generator coefficients and
-          run SOILWAT2 with activated weather generator
-```{r, weather4}
-  sw_in <- sw_in1
-  swWeather_UseMarkov(sw_in) <- TRUE
-  swMarkov_Prob(sw_in) <- wgen_coeffs[["mkv_doy"]]
-  swMarkov_Conv(sw_in) <- wgen_coeffs[["mkv_woy"]]
+### Option 2
+  (i) estimate weather generator coefficients and
+  (ii) run SOILWAT2 with activated weather generator
 
-  sw_out <- sw_exec(
-    inputData = sw_in,
+```{r, weather4}
+  rSOILWAT2::swWeather_UseMarkov(sw_in0) <- TRUE
+  rSOILWAT2::swMarkov_Prob(sw_in0) <- wgen_coeffs[["mkv_doy"]]
+  rSOILWAT2::swMarkov_Conv(sw_in0) <- wgen_coeffs[["mkv_woy"]]
+
+  sw_out <- rSOILWAT2::sw_exec(
+    inputData = sw_in0,
     weatherList = wdata_gaps
   )
 ```
 
-# Compare weather and climate based on weather inputs
-Task: plot a comparison between `wdata` and `wdata_filled` for
-      mean monthly precipitation and mean monthly temperature using the output
-      of function `calc_SiteClimate`
+## Compare weather and climate based on weather inputs
 ```{r, compare1}
-  clim1 <- calc_SiteClimate(wdata)
-  clim2 <- calc_SiteClimate(wdata_filled)
+  # Task: plot a comparison between `wdata` and `wdata_filled` for
+  # mean monthly precipitation and mean monthly temperature using the output
+  # of function `calc_SiteClimate`
+  clim1 <- rSOILWAT2::calc_SiteClimate(wdata)
+  clim2 <- rSOILWAT2::calc_SiteClimate(wdata_filled)
 
 
   plot(clim1[["meanMonthlyPPTcm"]], clim2[["meanMonthlyPPTcm"]])
@@ -245,165 +689,14 @@ Task: plot a comparison between `wdata` and `wdata_filled` for
   abline(0, 1, col = "red")
 ```
 
-Task: compare weather data `wdata` with `wdata_filled` using function
-      `compare_weather`
 ```{r, compare2, results = "hide"}
-  compare_weather(
-    ref_weather = dbW_weatherData_to_dataframe(wdata),
-    weather = dbW_weatherData_to_dataframe(wdata_filled),
+  # Task: compare weather data `wdata` with `wdata_filled` using function
+  # `compare_weather`
+  rSOILWAT2::compare_weather(
+    ref_weather = rSOILWAT2::dbW_weatherData_to_dataframe(wdata),
+    weather = rSOILWAT2::dbW_weatherData_to_dataframe(wdata_filled),
     N = 1,
     path = tempdir(),
     tag = "test"
-  )
-```
-
-
-# Access other weather data sources
-## Download weather data from `DayMet`
-```{r, daymetr, results = "hide"}
-  if (!requireNamespace("daymetr",
-    versionCheck = list(op = ">=", version = "1.4"))) {
-    install.packages("daymetr")
-  }
-```
-
-```{r, daymetr_data, results = "hide"}
-  dm_Laramie <- daymetr::download_daymet(
-    site = "testsite_name",
-    lat = 41.3167,
-    lon = -105.6833,
-    start = 1980,
-    end = 2018,
-    internal = TRUE,
-    simplify = FALSE
-  )
-```
-
-Task: convert `DayMet` data `dm_Laramie` into a data.frame with the columns
-      `Year`, `DOY`, `Tmax_C`, `Tmin_C`, `PPT_cm` and create a `rSOILWAT2`
-      weather object list with function `dbW_dataframe_to_weatherData`
-```{r, daymetr_data2}
-  vars <- c("year", "yday", "tmax..deg.c.", "tmin..deg.c.", "prcp..mm.day.")
-  xdf <- dm_Laramie[["data"]][, vars]
-  xdf[, "prcp..mm.day."] <- xdf[, "prcp..mm.day."] / 10 # convert mm -> cm
-  colnames(xdf) <- c("Year", "DOY", "Tmax_C", "Tmin_C", "PPT_cm")
-
-  wdata_dm <- dbW_dataframe_to_weatherData(weatherDF = xdf)
-
-  # This will fail: no leap days
-  sw_out <- try(sw_exec(
-    inputData = sw_in1,
-    weatherList = wdata_dm
-  ))
-```
-
-
-
-Task: Add leap days to data.frame and estimate those with weather generator
-```{r, daymetr_data3}
-  xdf2 <- dbW_convert_to_GregorianYears(weatherData = wdata_dm)
-
-  wdata_dm2 <- dbW_generateWeather(
-    weatherData = dbW_dataframe_to_weatherData(weatherDF = xdf2),
-    seed = 123
-  )
-
-  sw_out <- sw_exec(
-    inputData = sw_in1,
-    weatherList = wdata_dm2
-  )
-```
-
-
-# Specifying soils
-```{r, soils}
-  sw_in <- sw_in1
-
-  soil_has <- swSoils_Layers(sw_in)
-  soil_new <- data.frame(soil_has[0, ])
-
-  soil_def <- data.frame(
-    depth = c(5, 10, 20, 50),
-    bulkd = 1.3,
-    gravel = 0.1,
-    evco = c(0.9, 0.1, 0, 0),
-    trco_grass = c(0.1, 0.5, 0.3, 0.1),
-    trco_shrub = c(0.1, 0.3, 0.2, 0.4),
-    trco_tree = c(0.2, 0.3, 0.3, 0.2),
-    trco_forb = c(0.1, 0.3, 0.3, 0.3),
-    sand = 0.65,
-    clay = 0.05,
-    impermbeability = 0,
-    soil_temp = 0
-  )
-
-  soil_new[1:4, ] <- soil_def
-
-  swSoils_Layers(sw_in) <- data.matrix(soil_new)
-
-  trre <- data.frame(
-    ndx = 1:2,
-    layer = c(2, 4)
-  )
-  swSite_TranspirationRegions(sw_in) <- data.matrix(trre)
-
-  sw_out <- sw_exec(
-    inputData = sw_in,
-    weatherList = wdata
-  )
-```
-
-
-# Estimating vegetation based on climate relationships
-
-## Vegetation composition (land cover)
-Task: estimate vegetation composition with
-     function `estimate_PotNatVeg_composition`
-```{r, vegcomp}
-  clim <- calc_SiteClimate(
-    weatherList = wdata,
-    do_C4vars = TRUE
-  )
-
-
-  pnv_comp <- estimate_PotNatVeg_composition(
-    MAP_mm = 10 * clim[["MAP_cm"]],
-    MAT_C = clim[["MAT_C"]],
-    mean_monthly_ppt_mm = 10 * clim[["meanMonthlyPPTcm"]],
-    mean_monthly_Temp_C = clim[["meanMonthlyTempC"]],
-    dailyC4vars = clim[["dailyC4vars"]]
-  )
-
-  sw_in <- sw_in1
-  ids <- sapply(names(swProd_Composition(sw_in)), function(x) {
-    grep(
-      pattern = substr(x, 1, 4),
-      x = names(pnv_comp[["Rel_Abundance_L1"]]),
-      ignore.case = TRUE)
-  })
-  swProd_Composition(sw_in) <- pnv_comp[["Rel_Abundance_L1"]][ids]
-
-
-  sw_out <- sw_exec(
-    inputData = sw_in,
-    weatherList = wdata
-  )
-```
-
-
-# Modifying climate conditions
-```{r, climmod}
-  sw_in <- sw_in1
-
-  # Task: 50% reduction in June-Aug precipitation
-  swWeather_MonScalingParams(sw_in)[6:8, "PPT"] <- 0.5
-
-  # Task: 2 C warming
-  swWeather_MonScalingParams(sw_in)[, c("MaxT", "MinT")] <- 2
-
-
-  sw_out <- sw_exec(
-    inputData = sw_in,
-    weatherList = wdata
   )
 ```

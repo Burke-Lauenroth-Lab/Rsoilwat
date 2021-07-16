@@ -128,7 +128,7 @@
 #'
 #' @examples
 #' ## Load weather dataset from rSOILWAT2
-#' data("weatherData", package = "rSOILWAT2")
+#' utils::data("weatherData", package = "rSOILWAT2")
 #' clim1 <- calc_SiteClimate(weatherList = weatherData)
 #' clim2 <- calc_SiteClimate(weatherList = weatherData, do_C4vars = TRUE)
 #'
@@ -216,9 +216,21 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
   input_cover <- rep(NA, Nveg)
 
   # Groups that are either fixed or 0, i.e., cannot be NA = not estimated
-  input_cover[igan] <- if (fix_annuals) finite01(Annuals_Fraction) else 0
-  input_cover[itre] <- if (fix_trees) finite01(Trees_Fraction) else 0
-  input_cover[ibar] <- if (fix_BareGround) finite01(BareGround_Fraction) else 0
+  input_cover[igan] <- if (fix_annuals) {
+    rSW2utils::finite01(Annuals_Fraction)
+  } else {
+    0
+  }
+  input_cover[itre] <- if (fix_trees) {
+    rSW2utils::finite01(Trees_Fraction)
+  } else {
+    0
+  }
+  input_cover[ibar] <- if (fix_BareGround) {
+    rSW2utils::finite01(BareGround_Fraction)
+  } else {
+    0
+  }
 
   # Groups that are either fixed or estimated based on climate-relationships
   input_cover[igc4] <- if (fix_C4grasses) C4_Fraction else NA
@@ -228,16 +240,16 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
   input_cover[isuc] <- if (fix_succulents) Succulents_Fraction else NA
 
   # treat negative input values as if NA
-  input_cover <- cut0Inf(input_cover, val = NA)
+  input_cover <- rSW2utils::cut0Inf(input_cover, val = NA)
 
 
   #--- Check individual components if the sum of grasses is fixed
   fix_sumgrasses <- fix_sumgrasses && isTRUE(!is.na(SumGrasses_Fraction))
 
   if (fix_sumgrasses) {
-    SumGrasses_Fraction <- cut0Inf(SumGrasses_Fraction, val = 0)
+    SumGrasses_Fraction <- rSW2utils::cut0Inf(SumGrasses_Fraction, val = 0)
 
-    input_sum_grasses <- replace_NAs_with_val(
+    input_sum_grasses <- rSW2utils::replace_NAs_with_val(
       x = sum(input_cover[igrasses], na.rm = TRUE),
       val_replace = 0
     )
@@ -385,7 +397,7 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
       } else {
         # if not enough winter precipitation for a given MAP, then equation
         # results in negative values which we set to 0
-        estim_cover[ishr] <- cut0Inf(
+        estim_cover[ishr] <- rSW2utils::cut0Inf(
           1.7105 - 0.2918 * log(MAP_mm) + 1.5451 * ppt.WinterToMAP,
           val = 0
         )
@@ -398,7 +410,7 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
         # if either MAT < 0 or not enough summer precipitation or
         # too cold for a given MAP, then equation results in negative values
         # which we set to 0
-        estim_cover[igc4] <- cut0Inf(
+        estim_cover[igc4] <- rSW2utils::cut0Inf(
           -0.9837 + 0.000594 * MAP_mm +
             1.3528 * ppt.SummerToMAP + 0.2710 * log(MAT_C),
           val = 0
@@ -431,11 +443,11 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
       } else {
         # if not enough winter precipitation or too warm for a
         # given MAP, then equation results in negative values which we set to 0
-        c3_in_grassland <- cut0Inf(
+        c3_in_grassland <- rSW2utils::cut0Inf(
           1.1905 - 0.02909 * MAT_C + 0.1781 * log(ppt.WinterToMAP) - 0.2383 * 1,
           val = 0
         )
-        c3_in_shrubland <- cut0Inf(
+        c3_in_shrubland <- rSW2utils::cut0Inf(
           1.1905 - 0.02909 * MAT_C + 0.1781 * log(ppt.WinterToMAP) - 0.2383 * 2,
           val = 0
         )
@@ -448,7 +460,7 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
       if (MAP_mm < 1 || MAT_C <= 0) {
         estim_cover[ifor] <- NA
       } else {
-        estim_cover[ifor] <- cut0Inf(
+        estim_cover[ifor] <- rSW2utils::cut0Inf(
           -0.2035 + 0.07975 * log(MAP_mm) - 0.0623 * log(MAT_C),
           val = 0
         )
@@ -458,7 +470,7 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
       if (therm_amp <= 0 || ppt.WinterToMAP <= 0) {
         estim_cover[isuc] <- NA
       } else {
-        estim_cover[isuc] <- cut0Inf(
+        estim_cover[isuc] <- rSW2utils::cut0Inf(
           -1 + 1.20246 * therm_amp ^ -0.0689 * ppt.WinterToMAP ^ -0.0322,
           val = 0
         )
@@ -468,7 +480,7 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
       ngood <- sum(!is.na(estim_cover[iestim]))
 
       # Any remaining NAs are set to 0
-      estim_cover[iestim] <- replace_NAs_with_val(
+      estim_cover[iestim] <- rSW2utils::replace_NAs_with_val(
         x = estim_cover[iestim],
         val_replace = 0
       )
@@ -708,7 +720,6 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
 #' )
 #'
 #' ## Plot reference and adjusted monthly values
-#' \dontrun{
 #' par_prev <- par(mfrow = c(2, 1))
 #'
 #' plot(
@@ -738,7 +749,6 @@ estimate_PotNatVeg_composition <- function(MAP_mm, MAT_C,
 #' lines(1:12, phen_adj[, 2])
 #'
 #' par(par_prev)
-#' }
 #'
 #' @export
 adj_phenology_by_temp <- function(x, ref_temp, target_temp, x_asif = NULL) {
@@ -1376,11 +1386,16 @@ adjBiom_by_ppt <- function(biom_shrubs, biom_C3, biom_C4, biom_annuals,
 #' Adjust mean monthly biomass values of grass and shrub functional groups by
 #' climate relationships
 #'
+#' @inheritParams adj_phenology_by_temp
+#' @param MAP_mm A numeric value. Mean annual precipitation in millimeter of the
+#'   location.
 #' @param tr_VegBiom A data.frame with 12 rows (one for each month) and columns
 #'   \code{X.Biomass}, \code{X.Amount.Live}, \code{X.Perc.Live}, and
 #'   \code{X.Litter} where \code{X} are for the functional groups shrubs,
 #'   \code{X = Sh}; C3-grasses, \code{X = C3}; C4-grasses, \code{X = C4}; and
 #'   annuals, \code{X = Annual} containing default input values.
+#'   Function default values are from Bradford et al. 2014, see
+#'   \code{\link{sw2_tr_VegBiom}}.
 #' @param do_adjust_phenology A logical value. If \code{TRUE} then monthly
 #'   phenology is adjusted by temperature.
 #' @param do_adjust_biomass A logical value. If \code{TRUE} then monthly biomass
@@ -1388,9 +1403,6 @@ adjBiom_by_ppt <- function(biom_shrubs, biom_C3, biom_C4, biom_annuals,
 #' @param fgrass_c3c4ann A numeric vector of length 3. Relative contribution
 #'   [0-1] of the C3-grasses, C4-grasses, and annuals functional groups. The sum
 #'   of \code{fgrass_c3c4ann} is 1.
-#' @param MAP_mm A numeric value. Mean annual precipitation in millimeter of the
-#'   location.
-#' @inheritParams adj_phenology_by_temp
 #'
 #' @section Default inputs: \itemize{
 #'   \item Shrubs are based on location \var{\sQuote{IM_USC00107648_Reynolds}}
@@ -1400,7 +1412,11 @@ adjBiom_by_ppt <- function(biom_shrubs, biom_C3, biom_C4, biom_annuals,
 #'   \item Grasses are based on location \var{\sQuote{GP_SGSLTER}}
 #'     (shortgrass steppe) which resulted in 12 \% shrubs, 22 \% C3-grasses,
 #'     and 66 \% C4-grasses. Default biomass values were estimated for
-#'     MAP = 340 mm yr-1. }
+#'     MAP = 340 mm yr-1.
+#'  \item Mean monthly reference temperature are the median values across
+#'    898 big sagebrush sites
+#'    (see \url{https://github.com/DrylandEcology/rSFSTEP2/issues/195})
+#' }
 #'
 #' @return A list with two elements \code{grass}, \code{shrub}. Each element is
 #'   a matrix with 12 rows (one for each month) and columns \code{Biomass},
@@ -1416,15 +1432,51 @@ adjBiom_by_ppt <- function(biom_shrubs, biom_C3, biom_C4, biom_annuals,
 #'   variable impacts on dryland ecosystem water balance. J Ecol, 102,
 #'   1408-1418.
 #'
+#' @examples
+#' clim <- calc_SiteClimate(weatherList = rSOILWAT2::weatherData)
+#'
+#' veg_cover <- rSOILWAT2::estimate_PotNatVeg_composition(
+#'   MAP_mm = 10 * clim[["MAP_cm"]],
+#'   MAT_C = clim[["MAT_C"]],
+#'   mean_monthly_ppt_mm = 10 * clim[["meanMonthlyPPTcm"]],
+#'   mean_monthly_Temp_C = clim[["meanMonthlyTempC"]],
+#'   dailyC4vars = clim[["dailyC4vars"]]
+#' )
+#'
+#' rSOILWAT2::estimate_PotNatVeg_biomass(
+#'   target_temp = clim[["meanMonthlyTempC"]],
+#'   target_MAP_mm = 10 * clim[["MAP_cm"]],
+#'   do_adjust_phenology = TRUE,
+#'   do_adjust_biomass = TRUE,
+#'   fgrass_c3c4ann = veg_cover[["Grasses"]]
+#' )
+#'
 #' @export
-estimate_PotNatVeg_biomass <- function(tr_VegBiom,
+estimate_PotNatVeg_biomass <- function(
+  target_temp,
+  target_MAP_mm,
+  ref_temp,
+  tr_VegBiom = rSOILWAT2::sw2_tr_VegBiom,
   do_adjust_phenology = FALSE,
   do_adjust_biomass = FALSE,
-  fgrass_c3c4ann = c(1, 0, 0),
-  MAP_mm = 450,
-  ref_temp,
-  target_temp
+  fgrass_c3c4ann = c(1, 0, 0)
 ) {
+
+  if (missing(ref_temp) || is.null(ref_temp)) {
+    # Mean monthly reference temperature
+    # corresponding to default phenology values:
+    # median values across 898 big sagebrush sites
+    # (see https://github.com/DrylandEcology/rSFSTEP2/issues/195)
+    ref_temp <- c(
+      -4.6768, -2.7282, 1.8257, 6.0538, 10.696, 15.3878,
+      19.7777, 18.8755, 13.7868, 7.2843, 0.4167, -4.6912
+    )
+  }
+
+  if (missing(target_MAP_mm) || is.null(target_MAP_mm)) {
+    target_MAP_mm <- 450
+  }
+
 
   ns_VegBiom <- names(tr_VegBiom)
   tmp <- strsplit(ns_VegBiom, split = ".", fixed = TRUE)
@@ -1529,9 +1581,17 @@ estimate_PotNatVeg_biomass <- function(tr_VegBiom,
     biom_C4 = x[["biom_C4"]],
     biom_annuals = x[["biom_Annual"]],
     biom_maxs = colmax,
-    map_mm_shrubs = if (do_adjust_biomass) MAP_mm else StandardShrub_MAP_mm,
+    map_mm_shrubs = if (do_adjust_biomass) {
+      target_MAP_mm
+    } else {
+      StandardShrub_MAP_mm
+    },
     map_mm_std_shrubs = StandardShrub_MAP_mm,
-    map_mm_grasses = if (do_adjust_biomass) MAP_mm else StandardGrasses_MAP_mm,
+    map_mm_grasses = if (do_adjust_biomass) {
+      target_MAP_mm
+    } else {
+      StandardGrasses_MAP_mm
+    },
     map_mm_std_grasses = StandardGrasses_MAP_mm,
     vegcomp_std_shrubs = StandardShrub_VegComposition,
     vegcomp_std_grass = StandardGrasses_VegComposition
@@ -1632,6 +1692,193 @@ TranspCoeffByVegType <- function(tr_input_code, tr_input_coeff,
   trco
 }
 
+
+
+#' Calculate rooting profile for a soil profile from \var{lookup} tables
+#'
+#' @param layers_depth A numeric vector. Values describe
+#'   the lower soil layer depths [cm].
+#' @param trco_type_by_veg A named list of character strings.
+#'   The rooting profiles, i.e., column names in the \var{lookup} table,
+#'   for each vegetation type. A \code{NA} indicates that a rooting profile
+#'   is not calculated for that vegetation type.
+#'   The values will be passed to argument \var{trco_type} of function
+#'   \code{\link{TranspCoeffByVegType}}.
+#' @param trco_adj_by_veg A named list of character strings.
+#'   The type of adjustment from the full rooting profile
+#'   to the \code{layers_depth}.
+#'   The values will be passed to argument \var{adjustType} of function
+#'   \code{\link{TranspCoeffByVegType}}.
+#' @param fgrass_c3c4ann A named, numeric vector of length 3.
+#'   Relative contribution [0-1] of the C3-grasses, C4-grasses, and
+#'   annuals functional groups. The sum of \code{fgrass_c3c4ann} is 1.
+#' @param trco_table A named list with two elements. Default values
+#'   are taken from \code{\link{sw2_trco_table}}.
+#'
+#' @seealso \code{\link{TranspCoeffByVegType}}
+#'
+#' @examples
+#' sw_in <- rSOILWAT2::sw_exampleData
+#'
+#' clim <- calc_SiteClimate(weatherList = rSOILWAT2::weatherData)
+#'
+#' veg_cover <- rSOILWAT2::estimate_PotNatVeg_composition(
+#'   MAP_mm = 10 * clim[["MAP_cm"]],
+#'   MAT_C = clim[["MAT_C"]],
+#'   mean_monthly_ppt_mm = 10 * clim[["meanMonthlyPPTcm"]],
+#'   mean_monthly_Temp_C = clim[["meanMonthlyTempC"]],
+#'   dailyC4vars = clim[["dailyC4vars"]]
+#' )
+#'
+#' estimate_PotNatVeg_roots(
+#'   layers_depth = c(5, 10, 20, 30, 40, 50, 100, 200),
+#'   fgrass_c3c4ann = veg_cover[["Grasses"]]
+#' )
+#'
+#' @export
+estimate_PotNatVeg_roots <- function(
+  layers_depth,
+  trco_type_by_veg = list(
+    grass_C3 = "SchenkJackson2003_PCdry_grasses",
+    grass_C4 = "SchenkJackson2003_PCdry_grasses",
+    grass_annuals = "Jacksonetal1996_crops",
+    shrub = "SchenkJackson2003_PCdry_shrubs",
+    forb = "SchenkJackson2003_PCdry_forbs",
+    tree = "Bradfordetal2014_LodgepolePine"
+  ),
+  trco_adj_by_veg = list(
+    grass_C3 = "positive",
+    grass_C4 = "positive",
+    grass_annuals = "positive",
+    shrub = "positive",
+    forb = "positive",
+    tree = "positive"
+  ),
+  fgrass_c3c4ann = c(grass_C3 = NA, grass_C4 = NA, grass_annuals = NA),
+  trco_table = rSOILWAT2::sw2_trco_table
+) {
+  n_slyrs <- length(layers_depth)
+  veg_types <- c("Grass", "Shrub", "Tree", "Forb")
+
+  res_trco <- array(
+    data = NA,
+    dim = c(n_slyrs, length(veg_types)),
+    dimnames = list(NULL, veg_types)
+  )
+
+  for (k1 in seq_along(veg_types)) {
+    tmp_type <- sort(grep(
+      veg_types[k1],
+      names(trco_type_by_veg),
+      ignore.case = TRUE,
+      value = TRUE
+    ))
+
+    tmp_adj <- sort(grep(
+      veg_types[k1],
+      names(trco_adj_by_veg),
+      ignore.case = TRUE,
+      value = TRUE
+    ))
+
+    if (!all(tmp_type == tmp_adj)) {
+      stop(
+        "Names of `trco_type_by_veg` do not match ",
+        "`trco_adj_by_veg` for ", shQuote(veg_types[k1])
+      )
+    }
+
+    if (
+      isTRUE(!anyNA(unlist(trco_type_by_veg[tmp_type]))) &&
+      isTRUE(!anyNA(unlist(trco_adj_by_veg[tmp_adj])))
+    ) {
+      if (length(tmp_type) > 1 && veg_types[k1] == "Grass") {
+
+        tmp1 <- sapply(
+          strsplit(names(fgrass_c3c4ann), split = "_", fixed = TRUE),
+          FUN = function(x) x[[2]]
+        )
+        tmp2 <- sapply(
+          strsplit(tmp_type, split = "_", fixed = TRUE),
+          FUN = function(x) x[[2]]
+        )
+        tmp_igfcov <- match(tolower(tmp2), tolower(tmp1), nomatch = NA)
+
+        if (anyNA(tmp_igfcov)) {
+          stop(
+            "Names of `fgrass_c3c4ann` do not match ",
+            "`trco_adj_by_veg` for ", shQuote(veg_types[k1])
+          )
+        }
+
+        tmp_root <- rep(0, n_slyrs)
+        for (k2 in seq_along(tmp_type)) {
+          if (isTRUE(fgrass_c3c4ann[tmp_igfcov[k2]] > 0)) {
+            tmp <- TranspCoeffByVegType(
+              tr_input_code = trco_table[["desc"]],
+              tr_input_coeff = trco_table[["data"]],
+              soillayer_no = n_slyrs,
+              trco_type = trco_type_by_veg[[tmp_type[k2]]],
+              layers_depth = layers_depth,
+              adjustType = trco_adj_by_veg[[tmp_adj[k2]]]
+            )
+
+            tmp_root <- tmp_root + fgrass_c3c4ann[tmp_igfcov[k2]] * tmp
+          }
+        }
+
+
+      } else if (length(tmp_type) == 1) {
+        tmp_root <- TranspCoeffByVegType(
+          tr_input_code = trco_table[["desc"]],
+          tr_input_coeff = trco_table[["data"]],
+          soillayer_no = n_slyrs,
+          trco_type = trco_type_by_veg[[tmp_type]],
+          layers_depth = layers_depth,
+          adjustType = trco_adj_by_veg[[tmp_adj]]
+        )
+
+      } else {
+        stop(
+          "Root information for ",
+          shQuote(veg_types[k1]),
+          " incomplete."
+        )
+      }
+
+      # Check values
+      is_good <-
+        !anyNA(tmp_root) &&
+        all(tmp_root >= 0) &&
+        sum(tmp_root) - 1 <= sqrt(.Machine$double.eps)
+
+      if (!is_good) {
+        warning(
+          "Root information for ",
+          shQuote(veg_types[k1]),
+          " is problematic: ",
+          paste0(round(tmp_root, 4), collapse = " / "),
+          "; it was re-set to 0s."
+        )
+
+        tmp_root <- rep(0, n_slyrs)
+      }
+
+      res_trco[, veg_types[k1]] <- tmp_root
+
+    } else {
+      warning(
+        "No rooting profile selected for ",
+        shQuote(veg_types[k1]), "."
+      )
+    }
+  }
+
+  res_trco
+}
+
+
+
 #' Replace selected biomass values of a
 #' \link[rSOILWAT2:swProd-class]{rSOILWAT2::swProd} object
 #'
@@ -1658,4 +1905,137 @@ update_biomass <- function(fg = c("Grass", "Shrub", "Tree", "Forb"), use,
   }
 
   temp
+}
+
+
+# Determine minimal number of rooted soil layers with veg > 0
+get_min_rooted_soil_layers <- function(swInputData) {
+  veg_comp <- swProd_Composition(swInputData)
+  soils <- swSoils_Layers(swInputData)
+  var_veg1 <- c("Grass", "Shrub", "Tree", "Forb")
+  var_trco <- paste0("transp", var_veg1, "_frac")
+  var_comp <- sapply(
+    var_veg1,
+    function(x) grep(x, names(veg_comp), value = TRUE)
+  )
+
+  tmp <- apply(
+    soils[, var_trco, drop = FALSE],
+    MARGIN = 2,
+    FUN = function(x) sum(x > 0)
+  )
+
+  min(tmp[veg_comp[var_comp] > 0])
+}
+
+
+#' Check transpiration regions
+#'
+#' The transpiration regions are checked:
+#' \enumerate{
+#'  \item There is least one transpiration region
+#'  \item All transpiration regions include at least one soil layer
+#'  \item Transpiration regions are strictly increasing
+#'  \item Transpiration regions go no deeper than the most shallow
+#'       rooting profile of any active vegetation type
+#' }
+#'
+#' @param swInputData A \pkg{rSOILWAT2} input object of class
+#'   \code{\linkS4class{swInputData}}.
+#'
+#' @return A logical value.
+#'
+#' @examples
+#' sw_in <- rSOILWAT2::sw_exampleData
+#' check_TranspirationRegions(sw_in) ## Expected: TRUE
+#'
+#' # Make a mistake: set a transpiration region deeper than the rooting profile
+#' swSite_TranspirationRegions(sw_in)[2, 2] <- 10
+#' check_TranspirationRegions(sw_in) ## Expected: FALSE
+#'
+#' @export
+check_TranspirationRegions <- function(swInputData) {
+  tr <- swSite_TranspirationRegions(swInputData)
+
+  # Checks
+  nrow(tr) > 0 &&
+  tr[1, 2] >= 1 &&
+  tr[nrow(tr), 2] <= get_min_rooted_soil_layers(swInputData) &&
+  !anyNA(
+    rSW2utils::check_monotonic_increase(
+      x = tr,
+      MARGIN = 2,
+      strictly = TRUE
+    )
+  )
+}
+
+
+
+#' Adjust transpiration regions for roots and soil layers
+#'
+#' @param swInputData A \pkg{rSOILWAT2} input object of class
+#'   \code{\linkS4class{swInputData}}.
+#'
+#' @return A transpiration region matrix.
+#'
+#' @examples
+#' sw_in <- rSOILWAT2::sw_exampleData
+#'
+#' adjust_TranspirationRegions(sw_in)
+#'
+#' @export
+adjust_TranspirationRegions <- function(swInputData) {
+  tr <- swSite_TranspirationRegions(swInputData)
+
+  n_tr <- min(4, nrow(tr))
+  tri_file <- cbind(Used_TF = 1, DeepestLayer = tr[, 2])
+
+  # adjust maximum transpiration region for minimum soil depth and rooting depth
+  n_max <- min(
+    nrow(swSoils_Layers(swInputData)),
+    get_min_rooted_soil_layers(swInputData)
+  )
+
+  if (max(tri_file[tri_file[, 1] > 0, 2], na.rm = TRUE) > n_max) {
+    for (k in rev(seq_len(n_tr))) {
+      if (tri_file[k, 1] > 0) {
+        if (tri_file[k, 2] > n_max) {
+          tri_file[k, 2] <- tr[k, 2] <- n_max
+        }
+
+        if (k > 1 && tri_file[k, 2] <= tri_file[k - 1, 2]) {
+          tr <- matrix(tr[-k, ], ncol = 2)
+        }
+      }
+    }
+  }
+
+  tr
+}
+
+
+
+#' Prepare transpiration regions
+#'
+#' Translate a soil vector of transpiration region values into a
+#' transpiration region matrix.
+#'
+#' @param tr_lyrs An integer vector.
+#'   The transpiration region for each soil layer.
+#'
+#' @return A transpiration region matrix.
+#'
+#' @seealso
+#'   \code{\link{adjust_TranspirationRegions}} and
+#'   \code{\link{check_TranspirationRegions}}
+#'
+#' @examples
+#' # Example values correspond to `CONUSSOIL_BSE_EVERY10cm` of \pkg{rSFSW2}:
+#' prepare_TranspirationRegions(tr_lyrs = c(1, 1, 1, 2, 2, 2, 2, 3, 3, 3))
+#'
+#' @export
+prepare_TranspirationRegions <- function(tr_lyrs) {
+  tmp <- cumsum(rle(tr_lyrs)[["lengths"]])
+  cbind(ndx = seq_along(tmp), layer = tmp)
 }

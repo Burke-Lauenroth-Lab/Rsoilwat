@@ -8,6 +8,7 @@ dbW_addWeatherData(
   Site_id = NULL,
   lat = NULL,
   long = NULL,
+  tol_xy = 1e-04,
   weatherFolderPath = NULL,
   weatherData = NULL,
   Label = NULL,
@@ -27,6 +28,9 @@ dbW_addWeatherData(
 
 \item{long}{Numeric. Longitude and Latitude are used to identify site if
 \code{Site_id} is missing.}
+
+\item{tol_xy}{A numeric value. The tolerance used to match requested
+longitude and latitude values.}
 
 \item{Label}{A character string. A site label.}
 

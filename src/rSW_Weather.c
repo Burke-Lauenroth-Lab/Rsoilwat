@@ -158,7 +158,7 @@ SEXP onGet_SW_WTH() {
 }
 
 void onSet_SW_WTH(SEXP SW_WTH) {
-	int i;
+	int i, tmp;
 	SW_WEATHER *w = &SW_Weather;
 	SEXP
 		use_snow, pct_snowdrift, pct_snowRunoff,
@@ -184,8 +184,8 @@ void onSet_SW_WTH(SEXP SW_WTH) {
 	}
 
 	PROTECT(yr_first = GET_SLOT(SW_WTH, install(cSW_WTH_names[5])));
-	w->yr.first = *INTEGER(yr_first);
-	w->yr.first = (w->yr.first < 0) ? SW_Model.startyr : w->yr.first;
+	tmp = *INTEGER(yr_first);
+	w->yr.first = (tmp < 0) ? SW_Model.startyr : yearto4digit(tmp);
 
 	PROTECT(MonthlyScalingParams = GET_SLOT(SW_WTH, install(cSW_WTH_names[6])));
 	p_MonthlyValues = REAL(MonthlyScalingParams);

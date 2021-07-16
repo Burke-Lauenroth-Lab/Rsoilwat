@@ -112,16 +112,13 @@ SEXP onGet_SW_LYR() {
 	return SW_SOILS;
 }
 
+/* Function `onSet_SW_LYR()` corresponds to SOILWAT2's `_read_layers()` */
 void onSet_SW_LYR(SEXP SW_SOILS) {
 
 	SW_SITE *v = &SW_Site;
-	Bool evap_ok = TRUE, /* mitigate gaps in layers' evap coeffs */
-	transp_ok_veg[NVEGTYPES], /* same for transpiration coefficients */
-	fail = FALSE;
 	LyrIndex lyrno;
 	int i, j, k, columns;
-	const char *errtype = "\0";
-	RealF dmin = 0.0, dmax, evco, trco_veg[NVEGTYPES], psand, pclay, matricd, imperm, soiltemp, fval = 0, f_gravel;
+	RealF dmin = 0.0, dmax, evco, trco_veg[NVEGTYPES], psand, pclay, matricd, imperm, soiltemp, f_gravel;
 	RealD *p_Layers;
 	SEXP SW_LYR;
 
@@ -129,17 +126,22 @@ void onSet_SW_LYR(SEXP SW_SOILS) {
 	PROTECT(SW_LYR = GET_SLOT(SW_SOILS,install("Layers")));
 	MyFileName = SW_F_name(eLayers);
 
-	// Initialize
-	ForEachVegType(k) {
-		transp_ok_veg[k] = TRUE;
-	}
-
 
 	j = nrows(SW_LYR);
 	p_Layers = REAL(SW_LYR);
 	columns = ncols(SW_LYR);
-	if(columns != 12)
-		LogError(logfp, LOGFATAL, "%s : Too few columns in layers specified (%d).\n", MyFileName, columns);
+
+	/* Check that we have 12 values per layer */
+	/* Adjust number if new variables are added */
+	if (columns != 12) {
+		LogError(
+			logfp,
+			LOGFATAL,
+			"%s : Too few columns in layers specified (%d).\n",
+			MyFileName, columns
+		);
+	}
+
 	for (i = 0; i < j; i++) {
 		lyrno = _newlayer();
 
@@ -156,31 +158,6 @@ void onSet_SW_LYR(SEXP SW_SOILS) {
 		imperm = p_Layers[i + j * 10];
 		soiltemp = p_Layers[i + j * 11];
 
-		if (LT(matricd,0.)) {
-			fail = TRUE;
-			fval = matricd;
-			errtype = Str_Dup("bulk density");
-		} else if (LT(f_gravel,0.) || GT(f_gravel,1.)) {
-			fail = TRUE;
-			fval = f_gravel;
-			errtype = Str_Dup("gravel content");
-		} else if (LE(psand,0.)) {
-			fail = TRUE;
-			fval = psand;
-			errtype = Str_Dup("sand proportion");
-		} else if (LE(pclay,0.)) {
-			fail = TRUE;
-			fval = pclay;
-			errtype = Str_Dup("clay proportion");
-		} else if (LT(imperm,0.)) {
-			fail = TRUE;
-			fval = imperm;
-			errtype = Str_Dup("impermeability");
-		}
-		if (fail) {
-			LogError(logfp, LOGFATAL, "%s : Invalid %s (%5.4f) in layer %d.\n", MyFileName, errtype, fval, lyrno + 1);
-		}
-
 		v->lyr[lyrno]->width = dmax - dmin;
 		dmin = dmax;
 		v->lyr[lyrno]->soilMatric_density = matricd;
@@ -188,45 +165,22 @@ void onSet_SW_LYR(SEXP SW_SOILS) {
 		v->lyr[lyrno]->evap_coeff = evco;
 		ForEachVegType(k) {
 			v->lyr[lyrno]->transp_coeff[k] = trco_veg[k];
-			v->lyr[lyrno]->my_transp_rgn[k] = 0;
 		}
 		v->lyr[lyrno]->fractionWeightMatric_sand = psand;
 		v->lyr[lyrno]->fractionWeightMatric_clay = pclay;
 		v->lyr[lyrno]->impermeability = imperm;
 		v->lyr[lyrno]->sTemp = soiltemp;
 
-		if (evap_ok) {
-			if (GT(v->lyr[lyrno]->evap_coeff, 0.0)) {
-				v->n_evap_lyrs++;
-			} else
-				evap_ok = FALSE;
+		if (lyrno >= MAX_LAYERS) {
+			LogError(
+				logfp,
+				LOGFATAL,
+				"%s : Too many layers specified (%d).\n"
+				"Maximum number of layers is %d\n",
+				MyFileName, lyrno + 1, MAX_LAYERS
+			);
 		}
 
-		ForEachVegType(k) {
-			if (transp_ok_veg[k]) {
-				if (GT(v->lyr[lyrno]->transp_coeff[k], 0.0)) {
-					v->n_transp_lyrs[k]++;
-				} else
-					transp_ok_veg[k] = FALSE;
-			}
-		}
-
-
-		water_eqn(f_gravel, psand, pclay, lyrno);
-		v->lyr[lyrno]->swcBulk_fieldcap = SW_SWPmatric2VWCBulk(f_gravel, 0.333, lyrno) * v->lyr[lyrno]->width;
-		v->lyr[lyrno]->swcBulk_wiltpt = SW_SWPmatric2VWCBulk(f_gravel, 15, lyrno) * v->lyr[lyrno]->width;
-		calculate_soilBulkDensity(matricd, f_gravel, lyrno);
-
-		if (lyrno == MAX_LAYERS) {
-			LogError(logfp, LOGFATAL, "%s : Too many layers specified (%d).\n"
-					"Maximum number of layers is %d\n", MyFileName, lyrno + 1, MAX_LAYERS);
-		}
-
-	}
-	/* n_layers set in _newlayer() */
-	if (v->deepdrain) {
-		lyrno = _newlayer();
-		v->lyr[lyrno]->width = 1.0;
 	}
 
 	UNPROTECT(1);
@@ -540,10 +494,6 @@ void onSet_SW_SIT(SEXP SW_SIT) {
 			LogError(logfp, LOGFATAL, "siteparam.in : Discontinuity/reversal in transpiration regions.\n");
 		}
 	}
-
-
-	if (EchoInits)
-		_echo_inputs();
 
 	#ifdef RSWDEBUG
 	if (debug) swprintf(" ... done. \n");

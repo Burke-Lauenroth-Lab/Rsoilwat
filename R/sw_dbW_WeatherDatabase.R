@@ -220,43 +220,115 @@ dbW_has_weatherData <- function(Site_ids, Scenario_ids) {
 #' @param long A numeric vector or \code{NULL}. The longitude in decimal degrees
 #'   of \var{WGS84}. Eastern longitudes are positive, sites on the western
 #'   hemisphere have negative values.
+#' @param tol_xy A numeric value. The tolerance used to match requested
+#'   longitude and latitude values.
 #' @inheritParams check_content
 #'
 #' @return An integer vector with the values of the keys or \code{NA} if not
 #'   located.
 #' @export
-dbW_getSiteId <- function(lat = NULL, long = NULL, Labels = NULL,
-  ignore.case = FALSE, verbose = FALSE) {
+dbW_getSiteId <- function(
+  lat = NULL, long = NULL, tol_xy = 1e-4,
+  Labels = NULL,
+  ignore.case = FALSE,
+  verbose = FALSE
+) {
 
   stopifnot(dbW_IsValid(), identical(length(lat), length(long)))
 
   x <- if (is.character(Labels)) {
-      sql <- paste0("SELECT Site_id FROM Sites WHERE Label=:x",
-        if (ignore.case) " COLLATE NOCASE")
-      sapply(Labels, function(x) {
-        temp <- DBI::dbGetQuery(rSW2_glovars$con, sql,
-          params = list(x = x))[, 1]
-        if (is.null(temp)) NA else temp
-      })
+      sql <- paste0(
+        "SELECT Site_id FROM Sites WHERE Label=:x",
+        if (ignore.case) " COLLATE NOCASE"
+      )
+
+      tmp <- DBI::dbGetQuery(
+        rSW2_glovars$con,
+        statement = sql,
+        params = list(x = Labels)
+      )[, 1]
+
+      ntmp <- length(tmp)
+
+      if (ntmp == 0) {
+        rep(NA, length(Labels))
+
+      } else if (ntmp == length(Labels)) {
+        tmp
+
+      } else {
+        # Some Labels are missing, but we don't know which ones
+        # Slowly go through Labels one by one
+        rs <- DBI::dbSendQuery(rSW2_glovars$con, sql)
+
+        tmp <- sapply(
+          Labels,
+          function(x) {
+            DBI::dbBind(rs, list(x = x))
+            tmp <- DBI::dbFetch(rs)[, 1]
+            if (is.null(tmp)) NA else tmp
+          }
+        )
+
+        DBI::dbClearResult(rs)
+        tmp
+      }
+
 
     } else if (is.numeric(lat) && is.numeric(long)) {
-      sql <- "SELECT Site_id FROM Sites WHERE Latitude=:lat AND Longitude=:long"
-      itemp <- seq_along(lat)
-      sapply(itemp, function(k) {
-        temp <- DBI::dbGetQuery(rSW2_glovars$con, sql,
-          params = list(lat = lat[k], long = long[k]))[, 1]
-        if (is.null(temp)) NA else temp
-      })
+      # Find the latitude and longitude with the minimum difference if less
+      # than deviating by less than tolerance
+      sql <- paste(
+        "SELECT dxy2.Site_id",
+        "FROM (",
+          "SELECT",
+            "Site_id,",
+            "dxy.adlat AS adlat,",
+            "dxy.adlon AS adlon,",
+            "MIN(dxy.adlat) AS min_adlat,",
+            "MIN(dxy.adlon) AS min_adlon",
+          "FROM (",
+            "SELECT",
+              "Site_id,",
+              "ABS(Latitude - :lat) AS adlat,",
+              "ABS(Longitude - :lon) AS adlon",
+            "FROM Sites",
+            "WHERE",
+              "Latitude BETWEEN :lat - :tol AND :lat + :tol AND",
+              "Longitude BETWEEN :lon - :tol AND :lon + :tol",
+          ") AS dxy",
+        ") AS dxy2",
+        "WHERE",
+          "dxy2.adlat = dxy2.min_adlat AND",
+          "dxy2.adlon = dxy2.min_adlon"
+      )
+
+      rs <- DBI::dbSendQuery(rSW2_glovars$con, sql)
+
+      tmp <- sapply(
+        seq_along(lat),
+        function(k) {
+          DBI::dbBind(rs, list(lat = lat[k], lon = long[k], tol = tol_xy))
+          tmp <- DBI::dbFetch(rs)[, 1]
+          if (is.null(tmp)) NA else tmp
+        }
+      )
+
+      DBI::dbClearResult(rs)
+      tmp
+
 
     } else {
       if (verbose) {
         message("'dbW_getSiteId': not enough information to obtain site IDs")
       }
+
       rep(NA, max(length(Labels), length(long)))
     }
 
   as.integer(x)
 }
+
 
 #' Extract table keys to connect scenario(s) with weather data in the registered
 #' weather database
@@ -295,12 +367,20 @@ dbW_getScenarioId <- function(Scenario, ignore.case = FALSE, verbose = FALSE) {
 #'    \item its name \code{scenario}.
 #' }
 #'
+#'
+#' @inheritParams dbW_getSiteId
+#'
 #' @return A list with two elements \code{site_id} and \code{scenario_id}.
 #'
 #' @export
-dbW_getIDs <- function(site_id = NULL, site_label = NULL, long = NULL,
-  lat = NULL, scenario = NULL, scenario_id = NULL, add_if_missing = FALSE,
-  ignore.case = FALSE, verbose = FALSE) {
+dbW_getIDs <- function(
+  site_id = NULL, site_label = NULL,
+  long = NULL, lat = NULL, tol_xy = 1e-4,
+  scenario = NULL, scenario_id = NULL,
+  add_if_missing = FALSE,
+  ignore.case = FALSE,
+  verbose = FALSE
+) {
 
   res <- list(site_id = site_id, scenario_id = scenario_id)
 
@@ -308,8 +388,12 @@ dbW_getIDs <- function(site_id = NULL, site_label = NULL, long = NULL,
     all(dbW_has_siteIDs(res[["site_id"]]))
 
   if (!has_siteID) {
-    res[["site_id"]] <- dbW_getSiteId(Labels = site_label,
-      lat = lat, long = long, ignore.case = ignore.case, verbose = verbose)
+    res[["site_id"]] <- dbW_getSiteId(
+      Labels = site_label,
+      lat = lat, long = long, tol_xy = tol_xy,
+      ignore.case = ignore.case,
+      verbose = verbose
+    )
 
     if (anyNA(res[["site_id"]]) && add_if_missing) {
       iadd <- is.na(res[["site_id"]])
@@ -444,6 +528,7 @@ get_years_from_weatherData <- function(wd) {
 #' @param startYear Numeric. Extracted weather data will start with this year.
 #' @param endYear Numeric. Extracted weather data will end with this year.
 #' @param Scenario A character string.
+#' @inheritParams dbW_getSiteId
 #'
 #' @return Returns weather data as list. Each element is an object of class
 #'   \code{\linkS4class{swWeatherData}} and contains data for one year.
@@ -451,14 +536,26 @@ get_years_from_weatherData <- function(wd) {
 #' @seealso \code{\link{getWeatherData_folders}}
 #'
 #' @export
-dbW_getWeatherData <- function(Site_id = NULL, lat = NULL, long = NULL,
-  Label = NULL, startYear = NULL, endYear = NULL, Scenario = "Current",
-  Scenario_id = NULL, ignore.case = FALSE, verbose = FALSE) {
+dbW_getWeatherData <- function(
+  Site_id = NULL,
+  lat = NULL, long = NULL, tol_xy = 1e-4,
+  Label = NULL,
+  startYear = NULL, endYear = NULL,
+  Scenario = "Current", Scenario_id = NULL,
+  ignore.case = FALSE,
+  verbose = FALSE
+) {
 
   stopifnot(dbW_IsValid())
-  IDs <- dbW_getIDs(site_id = Site_id, site_label = Label, long = long,
-    lat = lat, scenario = Scenario, scenario_id = Scenario_id,
-    add_if_missing = FALSE, ignore.case = ignore.case, verbose = verbose)
+  IDs <- dbW_getIDs(
+    site_id = Site_id, site_label = Label,
+    long = long, lat = lat, tol_xy = tol_xy,
+    scenario = Scenario, scenario_id = Scenario_id,
+    add_if_missing = FALSE,
+    ignore.case = ignore.case,
+    verbose = verbose
+  )
+
 
   if (any(!sapply(IDs, function(x) length(x) > 0 && is.finite(x)))) {
     stop("'dbW_getWeatherData': insufficient information to locate weather ",
@@ -694,13 +791,22 @@ dbW_addWeatherDataNoCheck <- function(Site_id, Scenario_id, StartYear, EndYear,
 #' Adds daily weather data to a registered weather database
 #' @inheritParams check_content
 #' @inheritParams dbW_getWeatherData
+#'
 #' @return An invisible logical value indicating success with \code{TRUE} and
 #'  failure with \code{FALSE}.
+#'
 #' @export
-dbW_addWeatherData <- function(Site_id = NULL, lat = NULL, long = NULL,
-  weatherFolderPath = NULL, weatherData = NULL, Label = NULL,
-  Scenario_id = NULL, Scenario = "Current", weather_tag = "weath",
-  ignore.case = FALSE, overwrite = FALSE, verbose = FALSE) {
+dbW_addWeatherData <- function(
+  Site_id = NULL,
+  lat = NULL, long = NULL, tol_xy = 1e-4,
+  weatherFolderPath = NULL, weatherData = NULL,
+  Label = NULL,
+  Scenario_id = NULL, Scenario = "Current",
+  weather_tag = "weath",
+  ignore.case = FALSE,
+  overwrite = FALSE,
+  verbose = FALSE
+) {
 
   stopifnot(dbW_IsValid())
 
@@ -717,9 +823,15 @@ dbW_addWeatherData <- function(Site_id = NULL, lat = NULL, long = NULL,
       basename(weatherFolderPath)
     } else Label
 
-  IDs <- dbW_getIDs(site_id = Site_id, site_label = Label, long = long,
-    lat = lat, scenario = Scenario, scenario_id = Scenario_id,
-    add_if_missing = TRUE, ignore.case = ignore.case, verbose = verbose)
+  IDs <- dbW_getIDs(
+    site_id = Site_id, site_label = Label,
+    long = long, lat = lat, tol_xy = tol_xy,
+    scenario = Scenario, scenario_id = Scenario_id,
+    add_if_missing = TRUE,
+    ignore.case = ignore.case,
+    verbose = verbose
+  )
+
   if (any(!sapply(IDs, function(x) length(x) > 0 && is.finite(x)))) {
     stop("'dbW_addWeatherData': insufficient information to generate ",
       "site/scenario.")
@@ -1095,10 +1207,10 @@ dbW_weatherData_to_blob <- function(weatherData, type = "gzip") {
 #'    startYear = 1979, endYear = 2010)
 #'
 #' ## List of the slots of the input objects of class 'swWeatherData'
-#' str(sw_weath3, max.level=1)
+#' utils::str(sw_weath3, max.level=1)
 #'
 #' ## Execute the simulation run
-#' \dontrun{sw_out3 <- sw_exec(inputData = sw_in3, weatherList = sw_weath3)}
+#' sw_out3 <- sw_exec(inputData = sw_in3, weatherList = sw_weath3)
 #'
 #' @export
 getWeatherData_folders <- function(LookupWeatherFolder, weatherDirName = NULL,
@@ -1377,15 +1489,30 @@ dbW_weather_to_SOILWATfiles <- function(path, site.label,
     sw.comments <- c(paste("# weather for site", site.label, "year = ",
       years[y]), "# DOY Tmax(C) Tmin(C) PPT(cm)")
 
-    write.table(sw.comments, file = sw.filename, sep = "\t", eol = "\r\n",
-      quote = FALSE, row.names = FALSE, col.names = FALSE)
-    write.table(
+    utils::write.table(
+      sw.comments,
+      file = sw.filename,
+      sep = "\t",
+      eol = "\r\n",
+      quote = FALSE,
+      row.names = FALSE,
+      col.names = FALSE
+    )
+
+    utils::write.table(
       data.frame(data.sw[, 1],
         formatC(data.sw[, 2], digits = 2, format = "f"),
         formatC(data.sw[, 3], digits = 2, format = "f"),
-        formatC(data.sw[, 4], digits = 2, format = "f")),
-      file = sw.filename, append = TRUE, sep = "\t", eol = "\r\n",
-      quote = FALSE, row.names = FALSE, col.names = FALSE)
+        formatC(data.sw[, 4], digits = 2, format = "f")
+      ),
+      file = sw.filename,
+      append = TRUE,
+      sep = "\t",
+      eol = "\r\n",
+      quote = FALSE,
+      row.names = FALSE,
+      col.names = FALSE
+    )
   }
 
   invisible(years)
@@ -1486,7 +1613,7 @@ dbW_convert_to_GregorianYears <- function(weatherData,
   }
 
   # Create data.frame for new Calendar years
-  tdays <- days_in_years(
+  tdays <- rSW2utils::days_in_years(
     start_year = new_startYear,
     end_year = new_endYear
   )
@@ -1511,6 +1638,31 @@ dbW_convert_to_GregorianYears <- function(weatherData,
   wdata2[id_match > 0, name_data] <- wdata[id_match, name_data]
 
   wdata2
+}
+
+
+
+#' Check that weather data is well-formed
+#'
+#' Check that weather data is organized in a list
+#' where each element is of class \code{\linkS4class{swWeatherData}}, and
+#' represents daily data for one Gregorian year
+#'
+#' @param x An object.
+#'
+#' @return A logical value.
+#'
+#' @export
+dbW_check_weatherData <- function(x) {
+  length(x) > 0 &&
+  inherits(x, "list") &&
+  all(sapply(x, inherits, what = "swWeatherData")) &&
+  isTRUE(all.equal(
+    unname(sapply(x, function(xyr) nrow(slot(xyr, "data")))),
+    365 + as.integer(rSW2utils::isLeapYear(
+      sapply(x, slot, name = "year")
+    ))
+  ))
 }
 
 

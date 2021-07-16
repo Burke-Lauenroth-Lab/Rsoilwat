@@ -52,35 +52,46 @@
 #'
 #' @name swCarbon-class
 #' @export
-setClass("swCarbon", slots = c(CarbonUseBio = "integer",
-  CarbonUseWUE = "integer", Scenario = "character", DeltaYear = "integer",
-  CO2ppm = "matrix"))
+setClass(
+  "swCarbon",
+  slots = c(
+    CarbonUseBio = "integer",
+    CarbonUseWUE = "integer",
+    Scenario = "character",
+    DeltaYear = "integer",
+    CO2ppm = "matrix"
+  )
+)
 
 #' @rdname swCarbon-class
 #' @export
-setMethod("initialize", signature = "swCarbon", function(.Object, ...) {
-  def <- slot(rSOILWAT2::sw_exampleData, "carbon")
-  sns <- slotNames(def)
-  dots <- list(...)
-  dns <- names(dots)
+setMethod(
+  "initialize",
+  signature = "swCarbon",
+  function(.Object, ...) {
+    def <- slot(rSOILWAT2::sw_exampleData, "carbon")
+    sns <- slotNames(def)
+    dots <- list(...)
+    dns <- names(dots)
 
-  if ("CO2ppm" %in% dns) {
-    # Guarantee dimnames
-    dimnames(dots[["CO2ppm"]]) <- dimnames(def@CO2ppm)
+    if ("CO2ppm" %in% dns) {
+      # Guarantee dimnames
+      dimnames(dots[["CO2ppm"]]) <- dimnames(def@CO2ppm)
+    }
+
+    for (sn in sns) {
+      slot(.Object, sn) <- if (sn %in% dns) dots[[sn]] else slot(def, sn)
+    }
+
+    if (FALSE) {
+      # not needed because no relevant inheritance
+      .Object <- callNextMethod(.Object, ...)
+    }
+
+    validObject(.Object)
+    .Object
   }
-
-  for (sn in sns) {
-    slot(.Object, sn) <- if (sn %in% dns) dots[[sn]] else slot(def, sn)
-  }
-
-  if (FALSE) {
-    # not needed because no relevant inheritance
-    .Object <- callNextMethod(.Object, ...)
-  }
-
-  validObject(.Object)
-  .Object
-})
+)
 
 setValidity("swCarbon", function(object) {
   val <- TRUE

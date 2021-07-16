@@ -11,6 +11,16 @@ env:
   global:
     - LINTR_COMMENT_BOT=false
 
+addons:
+  apt:
+    packages:
+    - libudunits2-dev
+    - libproj-dev
+    - libgeos-dev
+    - libgdal-dev
+    - libnetcdf-dev
+    - netcdf-bin
+
 sudo: false
 
 warnings_are_errors: false # set to true: This option forces all WARNINGS from R CMD check
@@ -22,9 +32,6 @@ r_build_args: '--no-build-vignettes'
 r_check_args: '--ignore-vignettes'
 
 cache: packages
-
-r_github_packages:
-  - DrylandEcology/rSW2utils
 
 after_success:
   # code coverage but exclude all SOILWAT2 submodule files in scr/

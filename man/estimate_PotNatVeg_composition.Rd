@@ -188,7 +188,7 @@ fixed input values.
 
 \examples{
 ## Load weather dataset from rSOILWAT2
-data("weatherData", package = "rSOILWAT2")
+utils::data("weatherData", package = "rSOILWAT2")
 clim1 <- calc_SiteClimate(weatherList = weatherData)
 clim2 <- calc_SiteClimate(weatherList = weatherData, do_C4vars = TRUE)
 

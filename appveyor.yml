@@ -32,8 +32,6 @@ cache:
   - C:\RLibrary -> .appveyor_clear_cache.txt
 
 build_script:
-  - travis-tool.sh install_r circular
-  - travis-tool.sh install_github DrylandEcology/rSW2utils
   - travis-tool.sh install_deps
 
 test_script:

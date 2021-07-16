@@ -21,10 +21,10 @@ testing the package.
 sw_in <- rSOILWAT2::sw_exampleData
 
 ## Slots of the input object of class \code{\linkS4class{swInputData}}
-str(sw_in, max.level = 2)
+utils::str(sw_in, max.level = 2)
 
 ## Execute the simulation run
-\dontrun{sw_out <- sw_exec(inputData = sw_in)}
+sw_out <- sw_exec(inputData = sw_in)
 
 }
 \seealso{

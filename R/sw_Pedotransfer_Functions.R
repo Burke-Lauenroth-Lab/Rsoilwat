@@ -34,8 +34,8 @@ pdf_to_swp <- function(vwc, sand, clay, thetas, psis, b, bar_toMPa = -0.1,
 
 pedotransfer <- function(x, sand, clay, pdf) {
   stopifnot(length(sand) && length(sand) == length(clay))
-  sand <- finite01(sand, NA, NA)
-  clay <- finite01(clay, NA, NA)
+  sand <- rSW2utils::finite01(sand, NA, NA)
+  clay <- rSW2utils::finite01(clay, NA, NA)
 
   if (any(complete.cases(sand, clay))) {
     thetas <- -14.2 * sand - 3.7 * clay + 50.5

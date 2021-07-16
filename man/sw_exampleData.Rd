@@ -14,8 +14,17 @@ sw_exampleData
 \description{
 A dataset containing complete input data for an unspecified location.
 }
+\section{Notes}{
+ Using \code{sw_exampleData} as basis for creating a
+  site-specific simulation run is discouraged (even though there are many
+  such examples throughout the documentation of this package).
+  The recommended approach is to create a clean new object with
+  \code{new("swInputData")} and then set all site-specific inputs and
+  parameters. See \var{\dQuote{rSOILWAT2_demo}} vignette.
+}
+
 \examples{
-data(sw_exampleData)
+utils::data(sw_exampleData)
 path_demo <- system.file("extdata", "example1", package = "rSOILWAT2")
 x <- sw_inputDataFromFiles(dir = path_demo, files.in = "files.in")
 identical(x, sw_exampleData) ## TRUE

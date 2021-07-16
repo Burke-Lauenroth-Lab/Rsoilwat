@@ -8,6 +8,7 @@ dbW_getWeatherData(
   Site_id = NULL,
   lat = NULL,
   long = NULL,
+  tol_xy = 1e-04,
   Label = NULL,
   startYear = NULL,
   endYear = NULL,
@@ -26,6 +27,9 @@ dbW_getWeatherData(
 \item{long}{Numeric. Longitude and Latitude are used to identify site if
 \code{Site_id} is missing.}
 
+\item{tol_xy}{A numeric value. The tolerance used to match requested
+longitude and latitude values.}
+
 \item{Label}{A character string. A site label.}
 
 \item{startYear}{Numeric. Extracted weather data will start with this year.}
@@ -33,6 +37,8 @@ dbW_getWeatherData(
 \item{endYear}{Numeric. Extracted weather data will end with this year.}
 
 \item{Scenario}{A character string.}
+
+\item{ignore.case}{A logical value.}
 }
 \value{
 Returns weather data as list. Each element is an object of class

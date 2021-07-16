@@ -59,8 +59,7 @@ ids <- wdata[, "Year"] >= 2005
 x <- wdata[ids, ]
 
 # Set June-August of 2008 as missing
-ids <- x[, "Year"] == 2008 &
-  x[, "DOY"] >= 153 & x[, "DOY"] <= 244
+ids <- x[, "Year"] == 2008 & x[, "DOY"] >= 153 & x[, "DOY"] <= 244
 x[ids, -(1:2)] <- NA
 
 ## Example 1: generate weather for any missing values in our 'dataset'
@@ -69,20 +68,31 @@ wout1 <- dbW_generateWeather(x)
 ## Example 2: generate weather based on our 'dataset' but for
 ## years 2005-2015 and use estimated weather generator coefficients from
 ## a different dataset
-wgen_coeffs <- dbW_estimate_WGen_coefs(wdata,
-  imputation_type = "mean", imputation_span = 5)
+wgen_coeffs <- dbW_estimate_WGen_coefs(
+  wdata,
+  imputation_type = "mean",
+  imputation_span = 5
+)
+
 # Set seed to make output reproducible
-wout2 <- dbW_generateWeather(x, years = 2005:2015,
-  wgen_coeffs = wgen_coeffs, seed = 123)
+wout2 <- dbW_generateWeather(
+  x,
+  years = 2005:2015,
+  wgen_coeffs = wgen_coeffs,
+  seed = 123
+)
 
 ## Example 3: generate weather based only on estimated weather generator
 ## coefficients from a different dataset
 x_empty <- list(new("swWeatherData"))
-wout3 <- dbW_generateWeather(x_empty, years = 2050:2055,
-  wgen_coeffs = wgen_coeffs, seed = 123)
+wout3 <- dbW_generateWeather(
+  x_empty,
+  years = 2050:2055,
+  wgen_coeffs = wgen_coeffs,
+  seed = 123
+)
 
 ## Compare input weather with generated weather
-\dontrun{
 path <- tempdir()
 compare_weather(
   ref_weather = x,
@@ -92,6 +102,5 @@ compare_weather(
   tag = "Example1-WeatherGenerator"
 )
 unlink(list.files(path), force = TRUE)
-}
 
 }

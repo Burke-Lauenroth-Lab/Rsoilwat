@@ -1,7 +1,7 @@
 context("Vegetation functions")
 
 # Inputs
-data("weatherData", package = "rSOILWAT2")
+utils::data("weatherData", package = "rSOILWAT2")
 clim <- calc_SiteClimate(
   weatherList = weatherData,
   year.start = 1949,
@@ -10,7 +10,7 @@ clim <- calc_SiteClimate(
   simTime2 = NULL
 )
 
-data("sw_exampleData", package = "rSOILWAT2")
+utils::data("sw_exampleData", package = "rSOILWAT2")
 
 
 # Tests

@@ -2,9 +2,10 @@
 
 # A table with up to `MAX_LAYERS` rows (soil layers) and 12 columns:
 #   - depth = (cm) lower limit of layer; layers must be in order of depth
-#   - matricd = (g / cm^3) soil bulk density
-#   - gravel_content = (frac, 0-1) proportion of gravel by volume
-#     (i.e., particles > 2mm)
+#   - matricd = (g / cm^3) soil density of the < 2 mm fraction
+#     (i.e., matric component)
+#   - gravel_content = (frac, 0-1) proportion of rocks/rock fragments/gravel
+#     by volume (i.e., particles > 2 mm)
 #   - evco = (frac, 0-1) proportion of potential bare soil evaporation
 #   - trco = (frac, 0-1) proportion of potential transpiration for each
 #     vegetation type (tree, forb, shrub, grass),

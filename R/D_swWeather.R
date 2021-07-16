@@ -158,7 +158,15 @@ setMethod("initialize", signature = "swWeather", function(.Object, ...) {
   dns <- names(dots)
 
   for (sn in sns) {
-    slot(.Object, sn) <- if (sn %in% dns) dots[[sn]] else slot(def, sn)
+    slot(.Object, sn) <- if (sn %in% dns) {
+      dots[[sn]]
+    } else {
+      if (sn == "FirstYear_Historical") {
+        -1L
+      } else {
+        slot(def, sn)
+      }
+    }
   }
 
   .Object <- callNextMethod(.Object, ...)

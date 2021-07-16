@@ -29,10 +29,10 @@ path_demo <- system.file("extdata", "example1", package = "rSOILWAT2")
 sw_in2 <- sw_inputDataFromFiles(dir = path_demo, files.in = "files.in")
 
 ## Slots of the input object of \code{\linkS4class{swInputData}}
-str(sw_in2, max.level = 2)
+utils::str(sw_in2, max.level = 2)
 
 ## Execute the simulation run
-\dontrun{sw_out2 <- sw_exec(inputData = sw_in2)}
+sw_out2 <- sw_exec(inputData = sw_in2)
 
 
 }

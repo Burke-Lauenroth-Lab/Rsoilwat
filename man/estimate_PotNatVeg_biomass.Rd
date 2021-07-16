@@ -6,21 +6,31 @@
 climate relationships}
 \usage{
 estimate_PotNatVeg_biomass(
-  tr_VegBiom,
+  target_temp,
+  target_MAP_mm,
+  ref_temp,
+  tr_VegBiom = rSOILWAT2::sw2_tr_VegBiom,
   do_adjust_phenology = FALSE,
   do_adjust_biomass = FALSE,
-  fgrass_c3c4ann = c(1, 0, 0),
-  MAP_mm = 450,
-  ref_temp,
-  target_temp
+  fgrass_c3c4ann = c(1, 0, 0)
 )
 }
 \arguments{
+\item{target_temp}{A numeric vector of length 12. Mean monthly
+temperature values in degree Celsius of a target site / condition
+for which \code{x} is to be adjusted.}
+
+\item{ref_temp}{A numeric vector of length 12. Reference mean monthly
+temperature values in degree Celsius under which \code{x} was
+determined / is valid.}
+
 \item{tr_VegBiom}{A data.frame with 12 rows (one for each month) and columns
 \code{X.Biomass}, \code{X.Amount.Live}, \code{X.Perc.Live}, and
 \code{X.Litter} where \code{X} are for the functional groups shrubs,
 \code{X = Sh}; C3-grasses, \code{X = C3}; C4-grasses, \code{X = C4}; and
-annuals, \code{X = Annual} containing default input values.}
+annuals, \code{X = Annual} containing default input values.
+Function default values are from Bradford et al. 2014, see
+\code{\link{sw2_tr_VegBiom}}.}
 
 \item{do_adjust_phenology}{A logical value. If \code{TRUE} then monthly
 phenology is adjusted by temperature.}
@@ -34,14 +44,6 @@ of \code{fgrass_c3c4ann} is 1.}
 
 \item{MAP_mm}{A numeric value. Mean annual precipitation in millimeter of the
 location.}
-
-\item{ref_temp}{A numeric vector of length 12. Reference mean monthly
-temperature values in degree Celsius under which \code{x} was
-determined / is valid.}
-
-\item{target_temp}{A numeric vector of length 12. Mean monthly
-temperature values in degree Celsius of a target site / condition
-for which \code{x} is to be adjusted.}
 }
 \value{
 A list with two elements \code{grass}, \code{shrub}. Each element is
@@ -61,9 +63,33 @@ climate relationships
   \item Grasses are based on location \var{\sQuote{GP_SGSLTER}}
     (shortgrass steppe) which resulted in 12 \% shrubs, 22 \% C3-grasses,
     and 66 \% C4-grasses. Default biomass values were estimated for
-    MAP = 340 mm yr-1. }
+    MAP = 340 mm yr-1.
+ \item Mean monthly reference temperature are the median values across
+   898 big sagebrush sites
+   (see \url{https://github.com/DrylandEcology/rSFSTEP2/issues/195})
+}
 }
 
+\examples{
+clim <- calc_SiteClimate(weatherList = rSOILWAT2::weatherData)
+
+veg_cover <- rSOILWAT2::estimate_PotNatVeg_composition(
+  MAP_mm = 10 * clim[["MAP_cm"]],
+  MAT_C = clim[["MAT_C"]],
+  mean_monthly_ppt_mm = 10 * clim[["meanMonthlyPPTcm"]],
+  mean_monthly_Temp_C = clim[["meanMonthlyTempC"]],
+  dailyC4vars = clim[["dailyC4vars"]]
+)
+
+rSOILWAT2::estimate_PotNatVeg_biomass(
+  target_temp = clim[["meanMonthlyTempC"]],
+  target_MAP_mm = 10 * clim[["MAP_cm"]],
+  do_adjust_phenology = TRUE,
+  do_adjust_biomass = TRUE,
+  fgrass_c3c4ann = veg_cover[["Grasses"]]
+)
+
+}
 \references{
 Bradford, J.B., Schlaepfer, D.R., Lauenroth, W.K. & Burke, I.C.
   (2014). Shifts in plant functional types have time-dependent and regionally

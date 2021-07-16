@@ -67,55 +67,72 @@ References for the original version of `Soilwat`
 
 <br>
 
-### Obtain the source package
-
-There are several options:
-
-- Download the
-  [package zip file](https://github.com/DrylandEcology/rSOILWAT2/archive/master.zip)
-  via your web browser.
-
-- Use git to clone and get submodules in one line
-  ```
-  git clone -b master --single-branch --recursive https://github.com/DrylandEcology/rSOILWAT2.git rSOILWAT2
-  ```
-
 
 ### Installation
 
 `rSOILWAT2` will compile the c code of
-[SOILWAT2](https://github.com/DrylandEcology/SOILWAT2). Your computer must be
-set up adequately.
-- If you use a Windows OS, then you need the
-  [`Rtools`](http://cran.us.r-project.org/bin/windows/Rtools/)
-  installed that match your R version; please find further information for
-  instance [here](https://www.biostat.wisc.edu/~kbroman/Rintro/Rwinpack.html).
-- If you use a `macOS`, then you need [`Xcode`](https://developer.apple.com/xcode/) and
-  its [command-line tools](https://developer.apple.com/library/content/technotes/tn2339/_index.html)
-  installed; please find further information for instance
-  [here](https://railsapps.github.io/xcode-command-line-tools.html).
+[SOILWAT2](https://github.com/DrylandEcology/SOILWAT2) -- see section on
+binary version below for alternatives.
+Your computer must be set up adequately, i.e.,
+
+#### Minimal requirements include
+  - on any platform:
+    - the [gcc][] or [clang/llvm][] toolchains;
+      ideally, `gcc >= v4.9` or `clang >= v3.3`
+    - POSIX- [make](https://pubs.opengroup.org/onlinepubs/9699919799/) or
+      GNU-compliant [make](https://www.gnu.org/software/make/)
+    - [git][] to download the code
+  - additionally, on Windows OS:
+    - [`Rtools`](http://cran.us.r-project.org/bin/windows/Rtools/)
+      installed that match your R version.
+  - on macOSX:
+    - xcode command line tools (run `xcode-select --install` on the command line)
+    - having agreed to the xcode license (run `xcodebuild -license`)
+    - or, alternatively, the full [xcode](https://developer.apple.com/xcode)
+      installation
+  - optional:
+    - a minimal `latex` installation (see below) to generate package vignettes
 
 
-After you downloaded the source package, run
-```
-R CMD INSTALL rSOILWAT2
-```
+#### Example instructions for a minimal `latex` installation
+  * details on [tinytex](https://yihui.name/tinytex/)
+  * install the R package `tinytex`
+    ```{r}
+    install.packages("tinytex")
+    tinytex::install_tinytex()
+    ```
 
-Or do all at once from within R:
-```{r}
-system2(command = "git", args = "clone -b master --single-branch --recursive https://github.com/DrylandEcology/rSOILWAT2.git rSOILWAT2")
-if ("devtools" %in% installed.packages()) {
-  devtools::install(build_vignettes = TRUE)
-} else {
-  tools::Rcmd(args = paste("INSTALL rSOILWAT2"))
-}
-```
+  * if you don't have write permission to `/usr/local/bin`,
+    then appropriate symlinks are not generated;
+    thus, locate the path to `tlmgr`, e.g.,
+    with help of `tinytex::tinytex_root()`, and
+    fix symlinks with escalated privileges
+    ```{bash}
+    sudo [path/to/]tlmgr path add
+    ```
+
+
+#### Install rSOILWAT2
+  * Using the `remotes` R package
+    ```{r}
+    remotes::install_github("DrylandEcology/rSOILWAT2", build_vignettes = TRUE)
+    ```
+
+  * On the command line
+    ```{bash}
+    git clone -b master --single-branch --recursive https://github.com/DrylandEcology/rSOILWAT2.git rSOILWAT2
+    R CMD INSTALL rSOILWAT2
+    ```
+
+<br>
+
+
 
 ### Binary package version
 If you want a binary version of the 'rSOILWAT2' package (e.g., to distribute to
 someone without development tools) for a platform to which you do not have
 access, then you may consider using one of the cloud services (no endorsements):
-- https://builder.r-hub.io offers different Linux, Windows, and mac OS flavors
+- https://builder.r-hub.io offers different Linux, Windows, and macOSX flavors
   as targets
 - http://win-builder.r-project.org/ offers Windows OS as target
 

@@ -387,7 +387,7 @@ dbW_upgrade_v3to31 <- function(dbWeatherDataFile, fbackup = NULL,
     weatherData <- list()
     for (i in seq_along(years)) {
       zz <- textConnection(data[i])
-      ydata <- read.table(zz, header = FALSE, sep = ",",
+      ydata <- utils::read.table(zz, header = FALSE, sep = ",",
         stringsAsFactors = FALSE)
       close(zz)
       ydata <- as.matrix(cbind(seq_len(nrow(ydata)), ydata))
@@ -578,11 +578,11 @@ dbW_upgrade_v1to2 <- function(dbWeatherDataFile, fbackup = NULL,
           DBI::dbExecute(con, paste("UPDATE WeatherData SET Site_id =",
             site_new$Site_id, "WHERE Site_id =", iold, ";"))
         } else {
-          str(site_new)
+          utils::str(site_new)
           warning("No updated record for old site_id = ", iold)
         }
       } else {
-        str(site_old)
+        utils::str(site_old)
         warning("No record for old site_id = ", iold)
       }
     }

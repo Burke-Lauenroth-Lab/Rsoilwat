@@ -394,14 +394,22 @@ print_mkv_files <- function(mkv_doy, mkv_woy, path, digits = 5) {
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
 
   colnames(mkv_doy)[1] <- paste0("#", colnames(mkv_doy)[1])
-  write.table(format(mkv_doy, digits = digits),
+  utils::write.table(
+    format(mkv_doy, digits = digits),
     file = file.path(path, "mkv_prob.in"),
-    sep = "\t", row.names = FALSE, quote = FALSE)
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE
+  )
 
   colnames(mkv_woy)[1] <- paste0("#", colnames(mkv_woy)[1])
-  write.table(format(mkv_woy, digits = digits),
+  utils::write.table(
+    format(mkv_woy, digits = digits),
     file = file.path(path, "mkv_covar.in"),
-    sep = "\t", row.names = FALSE, quote = FALSE)
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE
+  )
 
   invisible(TRUE)
 }
@@ -496,7 +504,6 @@ prepare_weather_for_comparison <- function(weather,
 #'   that are saved as \var{png} files on the disk.
 #'
 #' @examples
-#' \dontrun{
 #' path <- tempdir()
 #'
 #' ## Example with default rSOILWAT2 weather data
@@ -505,31 +512,42 @@ prepare_weather_for_comparison <- function(weather,
 #' w1[, "Tmax_C"] <- w1[, "Tmax_C"] + 2
 #' w1[, "Tmin_C"] <- w1[, "Tmin_C"] - 2
 #'
-#' compare_weather(ref_weather = w0, weather = w1, N = 1,
-#'   path = path, tag = "Example1-Silly")
+#' compare_weather(
+#'   ref_weather = w0,
+#'   weather = w1,
+#'   N = 1,
+#'   path = path,
+#'   tag = "Example1-Silly"
+#' )
 #'
 #' ## Example with STEPWAT2 output data averaged across iterations (`-o` option)
-#' fname_master <- "file_STEPWAT2_master.csv"
+#' fname_main <- "file_STEPWAT2_main.csv"
 #' fname_dev <- "file_STEPWAT2_dev.csv"
-#' if (all(file.exists(fname_master, fname_dev))) {
-#'   cols_STEPWAT2 <- c("Year", "Day", "PRECIP_ppt_Mean", "TEMP_max_C_Mean",
-#'     "TEMP_min_C_Mean")
+#' if (all(file.exists(fname_main, fname_dev))) {
+#'   cols_STEPWAT2 <- c(
+#'     "Year", "Day", "PRECIP_ppt_Mean", "TEMP_max_C_Mean", "TEMP_min_C_Mean"
+#'   )
 #'   cols_rSOILWAT2 <- c("Year", "Day", "PPT_cm", "Tmax_C", "Tmin_C")
-#'   w0 <- read.csv(fname_master)[, cols_STEPWAT2]
+#'   w0 <- utils::read.csv(fname_main)[, cols_STEPWAT2]
 #'   colnames(w0) <- cols_rSOILWAT2
-#'   w1 <- read.csv(fname_dev)[, cols_STEPWAT2]
+#'   w1 <- utils::read.csv(fname_dev)[, cols_STEPWAT2]
 #'   colnames(w1) <- cols_rSOILWAT2
 #'
 #'   # Note: Since values are averages across many iterations, most days
 #'   # have average precipitation values > 0; thus, we need to adjust
 #'   # `WET_limit_cm` accordingly (here, with a guess)
-#'   compare_weather(ref_weather = w0, weather = w1, N = 1, WET_limit_cm = 0.1,
-#'     path = path, tag = "Example2-STEPWAT2")
+#'   compare_weather(
+#'     ref_weather = w0,
+#'     weather = w1,
+#'     N = 1,
+#'     WET_limit_cm = 0.1,
+#'     path = path,
+#'     tag = "Example2-STEPWAT2"
+#'   )
 #' }
 #'
 #' ## Cleanup
 #' unlink(list.files(path), force = TRUE)
-#' }
 #'
 #' @export
 compare_weather <- function(ref_weather, weather, N, WET_limit_cm = 0,
@@ -788,8 +806,7 @@ compare_weather <- function(ref_weather, weather, N, WET_limit_cm = 0,
 #' x <- wdata[ids, ]
 #'
 #' # Set June-August of 2008 as missing
-#' ids <- x[, "Year"] == 2008 &
-#'   x[, "DOY"] >= 153 & x[, "DOY"] <= 244
+#' ids <- x[, "Year"] == 2008 & x[, "DOY"] >= 153 & x[, "DOY"] <= 244
 #' x[ids, -(1:2)] <- NA
 #'
 #' ## Example 1: generate weather for any missing values in our 'dataset'
@@ -798,20 +815,31 @@ compare_weather <- function(ref_weather, weather, N, WET_limit_cm = 0,
 #' ## Example 2: generate weather based on our 'dataset' but for
 #' ## years 2005-2015 and use estimated weather generator coefficients from
 #' ## a different dataset
-#' wgen_coeffs <- dbW_estimate_WGen_coefs(wdata,
-#'   imputation_type = "mean", imputation_span = 5)
+#' wgen_coeffs <- dbW_estimate_WGen_coefs(
+#'   wdata,
+#'   imputation_type = "mean",
+#'   imputation_span = 5
+#' )
+#'
 #' # Set seed to make output reproducible
-#' wout2 <- dbW_generateWeather(x, years = 2005:2015,
-#'   wgen_coeffs = wgen_coeffs, seed = 123)
+#' wout2 <- dbW_generateWeather(
+#'   x,
+#'   years = 2005:2015,
+#'   wgen_coeffs = wgen_coeffs,
+#'   seed = 123
+#' )
 #'
 #' ## Example 3: generate weather based only on estimated weather generator
 #' ## coefficients from a different dataset
 #' x_empty <- list(new("swWeatherData"))
-#' wout3 <- dbW_generateWeather(x_empty, years = 2050:2055,
-#'   wgen_coeffs = wgen_coeffs, seed = 123)
+#' wout3 <- dbW_generateWeather(
+#'   x_empty,
+#'   years = 2050:2055,
+#'   wgen_coeffs = wgen_coeffs,
+#'   seed = 123
+#' )
 #'
 #' ## Compare input weather with generated weather
-#' \dontrun{
 #' path <- tempdir()
 #' compare_weather(
 #'   ref_weather = x,
@@ -821,7 +849,6 @@ compare_weather <- function(ref_weather, weather, N, WET_limit_cm = 0,
 #'   tag = "Example1-WeatherGenerator"
 #' )
 #' unlink(list.files(path), force = TRUE)
-#' }
 #'
 #' @export
 dbW_generateWeather <- function(weatherData, years = NULL, wgen_coeffs = NULL,

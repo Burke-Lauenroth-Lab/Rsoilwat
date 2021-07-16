@@ -113,7 +113,7 @@ setMethod("swReadLines",
   function(object, file) {
     object@year <- as.integer(strsplit(x = basename(file), split = ".",
       fixed = TRUE)[[1]][2])
-    data <- read.table(file, header = FALSE, comment.char = "#",
+    data <- utils::read.table(file, header = FALSE, comment.char = "#",
       blank.lines.skip = TRUE, sep = "\t")
     colnames(data) <- c("DOY", "Tmax_C", "Tmin_C", "PPT_cm")
     object@data <- as.matrix(data)

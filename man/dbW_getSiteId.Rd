@@ -8,6 +8,7 @@ weather database}
 dbW_getSiteId(
   lat = NULL,
   long = NULL,
+  tol_xy = 1e-04,
   Labels = NULL,
   ignore.case = FALSE,
   verbose = FALSE
@@ -21,6 +22,9 @@ hemisphere have negative values.}
 \item{long}{A numeric vector or \code{NULL}. The longitude in decimal degrees
 of \var{WGS84}. Eastern longitudes are positive, sites on the western
 hemisphere have negative values.}
+
+\item{tol_xy}{A numeric value. The tolerance used to match requested
+longitude and latitude values.}
 
 \item{Labels}{A vector of character strings. The names/labels of the queried
 sites.}
